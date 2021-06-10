@@ -329,6 +329,64 @@ namespace myGame{
         bullet.overlapKind = 3 //引发overlapAct的碰撞类型：1=>子弹碰子弹, 2=>子弹碰人, 3=>任意
         bullet.dir = 2 //朝向 1->左，2->右
     }
+
+    export class myCharacter{
+        basicSet: (p: Character)=>void
+        skillSet: (p: Character)=>void
+        img: Image
+        constructor(img: Image){
+            this.basicSet = (p: Character)=>{}
+            this.skillSet = (p: Character)=>{}
+            this.img = img
+        }
+    }
+
+    let myCharacters: {c: myCharacter, name: string}[] = []
+
+    //%block
+    //%group="自定义人物"
+    //%blockId=basicSet block="自定义人物 %img=screen_image_picker 命名为 %name"
+    //%str.defl=SkillKind.A mp.defl=0
+    //%weight=99
+    //%draggableParameters="player"
+    export function basicSet(img: Image, name: string, bs: (player: Character)=>void){
+        let c = new myCharacter(img)
+        c.basicSet = bs
+        myCharacters.push({c: c, name: name})
+        //%afterOnStart=true
+    }
+
+    //%block
+    //%group="自定义人物"
+    //%blockId=skillSet block="自定义人物 %name 技能"
+    //%str.defl=SkillKind.A mp.defl=0
+    //%weight=98
+    //%draggableParameters="player"
+    export function skillSet(name: string, ss: (player: Character)=>void){
+        for(let x of myCharacters){
+            if(x.name == name){
+                x.c.skillSet = ss
+                break
+            }
+        }
+    }
+
+    //%block
+    //%group="自定义人物"
+    //%blockId=exportCharacter block="导出人物%name"
+    export function exportCharacter(name: string){
+        if(playGame.characters == undefined){
+            playGame.characters = []
+        }
+        for(let x of myCharacters){
+            if(x.name == name){
+                playGame.characters.push({character: x.c, name: name})
+                break
+            }
+        }
+        
+    }
+
     export class Character{
         laspres = -1 //方向
         rushspeed = 80 //奔跑速度
@@ -2093,6 +2151,8 @@ namespace myGame{
     //%blockId=setSkill block="设置技能 %player=variables_get(player) %str=SkillKind 消耗mp %mp"
     //%str.defl=SkillKind.A mp.defl=0
     //%weight=90
+    //%topblock=false
+    //%handlerStatement=true
     //%draggableParameters="tempVar player"
     export function setSkill(player: Character, str: SkillKind, mp: number, skill: (tempVar: tempVarDic, player: Character)=>void){
         if(str == SkillKind.A){ //平A: A
@@ -2839,18 +2899,6 @@ namespace myGame{
     //%blockId=dirRight block="%p=variables_get(player) 朝向右"
     export function dirRight(p: Character): boolean{
         return p.laspres == 2
-    }
-
-//=================== 导出人物 ===================
-    //%block
-    //%group="导出人物"
-    //%blockId=exportCharacter block="导出人物$p=variables_get(player) 命名为%name"
-    //%afterOnStart=true
-    export function exportCharacter(p: Character, name: string){
-        if(playGame.characters == undefined){
-            playGame.characters = []
-        }
-        playGame.characters.push({character: p, name: name})
     }
 
 }

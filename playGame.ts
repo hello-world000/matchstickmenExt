@@ -1,5 +1,5 @@
 namespace playGame{
-    export let characters :({character: myGame.Character, name: string})[]
+    export let characters :({character: myGame.myCharacter, name: string})[]
     function copy(From: myGame.Character, To: myGame.Character){
         To.damageA = From.damageA
         To.damageB = From.damageB
@@ -290,7 +290,7 @@ namespace playGame{
         s1.left = 1;
         dialog1.setText(characters[index1].name)
         dialog1.drawTextCore();
-        m1.setImage(characters[index1].character.standard)
+        m1.setImage(characters[index1].character.img)
 
         txt1 = new game.Dialog(75, 25, img`
             . . . .
@@ -313,7 +313,7 @@ namespace playGame{
         s2.left = 85;
         dialog2.setText(characters[index2].name)
         dialog2.drawTextCore();
-        m2.setImage(characters[index2].character.standard)
+        m2.setImage(characters[index2].character.img)
 
         animation.runImageAnimation(b1, [dot, img`.`], 1000, true)
         animation.runImageAnimation(b2, [dot, img`.`], 1000, true)
@@ -375,7 +375,7 @@ namespace playGame{
                 index1 = (index1-1+characters.length)%characters.length
                 dialog1.setText(characters[index1].name)
                 dialog1.drawTextCore()
-                m1.setImage(characters[index1].character.standard)
+                m1.setImage(characters[index1].character.img)
                 clock1 = setTimeout(()=>{
                     c1.setImage(nimg)
                     clock1 = -1
@@ -388,7 +388,7 @@ namespace playGame{
                 index1 = (1+index1)%characters.length
                 dialog1.setText(characters[index1].name)
                 dialog1.drawTextCore()
-                m1.setImage(characters[index1].character.standard)
+                m1.setImage(characters[index1].character.img)
                 clock1 = setTimeout(()=>{
                     c1.setImage(nimg)
                     clock1 = -1
@@ -423,7 +423,7 @@ namespace playGame{
                 index2 = (index2-1+characters.length)%characters.length
                 dialog2.setText(characters[index2].name)
                 dialog2.drawTextCore()
-                m2.setImage(characters[index2].character.standard)
+                m2.setImage(characters[index2].character.img)
                 clock2 = setTimeout(()=>{
                     c2.setImage(nimg)
                     clock2 = -1
@@ -436,7 +436,7 @@ namespace playGame{
                 index2 = (1+index2)%characters.length
                 dialog2.setText(characters[index2].name)
                 dialog2.drawTextCore()
-                m2.setImage(characters[index2].character.standard)
+                m2.setImage(characters[index2].character.img)
                 clock2 = setTimeout(()=>{
                     c2.setImage(nimg)
                     clock2 = -1
@@ -458,24 +458,26 @@ namespace playGame{
             return null
         }
         let newPlayer = new myGame.Character(sprites.create(img`
-. . . . . . . . . . . . . . . . 
-. . . . . . . . . . . . . . . . 
-. . . . . . . . . . . . . . . . 
-. . . . . . . . . . . . . . . . 
-. . . . . . . . . . . . . . . . 
-. . . . . . . . . . . . . . . . 
-. . . . . . . . . . . . . . . . 
-. . . . . . . . . . . . . . . . 
-. . . . . . . . . . . . . . . . 
-. . . . . . . . . . . . . . . . 
-. . . . . . . . . . . . . . . . 
-. . . . . . . . . . . . . . . . 
-. . . . . . . . . . . . . . . . 
-. . . . . . . . . . . . . . . . 
-. . . . . . . . . . . . . . . . 
-. . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . .
+            . . . . . . . . . . . . . . . .
+            . . . . . . . . . . . . . . . .
+            . . . . . . . . . . . . . . . .
+            . . . . . . . . . . . . . . . .
+            . . . . . . . . . . . . . . . .
+            . . . . . . . . . . . . . . . .
+            . . . . . . . . . . . . . . . .
+            . . . . . . . . . . . . . . . .
+            . . . . . . . . . . . . . . . .
+            . . . . . . . . . . . . . . . .
+            . . . . . . . . . . . . . . . .
+            . . . . . . . . . . . . . . . .
+            . . . . . . . . . . . . . . . .
+            . . . . . . . . . . . . . . . .
+            . . . . . . . . . . . . . . . .
         `), controller.player1, SpriteKind.p1atk)
-        copy(characters[index].character, newPlayer)
+        characters[index].character.basicSet(newPlayer)
+        characters[index].character.skillSet(newPlayer)
+        //copy(characters[index].character, newPlayer)
         myGame.setPlayer(newPlayer, kind)
         return newPlayer
     }
