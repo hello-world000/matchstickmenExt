@@ -284,7 +284,7 @@ namespace playGame{
         
         game.pushScene()
         game.currentScene().flags |= scene.Flag.SeeThrough;
-        dialog1 = new game.Dialog(75, 22);
+        dialog1 = new game.Dialog(75, 26);
         const s1 = sprites.create(dialog1.image, -1);
         s1.top = 75;
         s1.left = 1;
@@ -307,7 +307,7 @@ namespace playGame{
 
         //game.pushScene()
         //game.currentScene().flags |= scene.Flag.SeeThrough;
-        dialog2 = new game.Dialog(75, 22);
+        dialog2 = new game.Dialog(75, 26);
         const s2 = sprites.create(dialog2.image, -1);
         s2.top = 75;
         s2.left = 85;

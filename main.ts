@@ -642,6 +642,9 @@ namespace matchstickMen{
         myGame.setAbility(player, myGame.abilityKind.def, 0.4)
         myGame.exportCharacter(player, "未命名")
         //复制到这里为止
+
+        //要进入游戏测试，可以在MyGame的'导出人物'后使用PlayGame的'开始游戏'
+        //或者直接用MyGame的'开始游戏-player1-player2'
     }
 }
 */
