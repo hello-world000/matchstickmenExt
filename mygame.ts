@@ -198,44 +198,79 @@ namespace myGame{
         }
     })
 
-//=================== 游戏初始化 ===================
+//=================== 自定义人物 ===================
+    export class myCharacter{
+        basicSet: (p: Character)=>void
+        skillSet: (p: Character)=>void
+        img: Image
+        constructor(){
+            this.basicSet = (p: Character)=>{}
+            this.skillSet = (p: Character)=>{}
+        }
+    }
+
+    let myCharacters: {c: myCharacter, name: string}[] = []
+
     //%block
-    //%group="游戏初始化"
-    //%blockId=createCharacter block="新建人物 精灵%mySprite=variables_get(mySprite) of 玩家 %kind"
-    //%kind.defl=PlayerKind.Player1
+    //%group="自定义人物"
+    //%blockId=basicSet block="自定义人物 %img=screen_image_picker 命名为 %name"
+    //%str.defl=SkillKind.A mp.defl=0
     //%weight=99
-    export function createCharacter(mySprite: Sprite, kind: PlayerKind) : Character{
-        mySprite.setStayInScreen(true)
-        mySprite.ay = g
-        let p: Character
-        if(kind == PlayerKind.Player1){
-            mySprite.x = 5
-            mySprite.setKind(SpriteKind.p1body)
-            p = new Character(mySprite, controller.player1, SpriteKind.p1atk)
+    //%draggableParameters="player"
+    export function basicSet(img: Image, name: string, bs: (player: Character)=>void){
+        for(let x of myCharacters){
+            if(x.name == name){
+                x.c.basicSet = bs
+                x.c.img = img
+                exportCharacter(name)
+                return
+            }
         }
-        else if(kind == PlayerKind.Player2){
-            mySprite.x = 155
-            mySprite.setKind(SpriteKind.p2body)
-            p = new Character(mySprite, controller.player2, SpriteKind.p2atk)
-        }
-        return p
+        let c = new myCharacter()
+        c.basicSet = bs
+        myCharacters.push({c: c, name: name})
+        c.img = img
+        exportCharacter(name)
     }
 
+    let curSkillPlayer: Character
+
     //%block
-    //%group="游戏初始化"
-    //%blockId=createCharacter2 block="新建人物 精灵%mySprite=variables_get(mySprite) of 玩家 %kind"
-    //%kind.defl=PlayerKind.Player1
-    //%blockSetVariable="player"
+    //%group="自定义人物"
+    //%blockId=skillSet block="自定义人物 %name 技能"
+    //%str.defl=SkillKind.A mp.defl=0
     //%weight=98
-    export function createCharacter2(mySprite: Sprite, kind: PlayerKind) : Character{
-        return createCharacter(mySprite, kind)
+    //%draggableParameters="player"
+    export function skillSet(name: string, ss: (player: Character)=>void){
+        //%afterOnStart=true
+        for(let x of myCharacters){
+            if(x.name == name){
+                x.c.skillSet = ss
+                return
+            }
+        }
+        let c = new myCharacter()
+        c.skillSet = ss
+        myCharacters.push({c: c, name: name})
     }
 
-    //%block
-    //%group="游戏初始化"
-    //%blockId=setPlayer block="设置人物 %p=variables_get(player) 归属玩家 %kind"
-    //%kind.defl=PlayerKind.Player1
-    //%weight=97
+    /*//%block
+    //%group="自定义人物"
+    //%blockId=exportCharacter block="导出人物 %name"
+    export */
+    function exportCharacter(name: string){
+        if(playGame.characters == undefined){
+            playGame.characters = []
+        }
+        for(let x of myCharacters){
+            if(x.name == name){
+                playGame.characters.push({character: x.c, name: name})
+                break
+            }
+        }
+        
+    }
+//=================== 游戏初始化 ===================
     export function setPlayer(p: Character, kind: PlayerKind){
         p.mySprite.setStayInScreen(true)
         if(kind == PlayerKind.Player1){
@@ -256,10 +291,6 @@ namespace myGame{
         }
     }
 
-    //%block
-    //%group="游戏初始化"
-    //%blockId=overlap block="开始游戏 %p1=variables_get(player1) %p2=variables_get(player2)"
-    //%weight=90
     export function overlap(p1: Character, p2: Character){
         scene.setBackgroundColor(1)
         setPlayer(p1, PlayerKind.Player1)
@@ -299,7 +330,16 @@ namespace myGame{
     }
 
     //%block
-    //% group="技能设置"
+    //%group="技能设置"
+    //%blockId=bar block="块间分隔标记 %s"
+    //%weight=89
+    //%color=2
+    export function bar(s: string){
+
+    }
+
+    //%block
+    //% group="弹射物设置"
     //%blockId=isDestroyed block="%b=variables_get(projectile) 已销毁"
     export function isDestroyed(b: wave): boolean{
         return b.isDestroyed
@@ -328,63 +368,6 @@ namespace myGame{
         bullet.overlapAct = ()=>{} //碰撞后的行为
         bullet.overlapKind = 3 //引发overlapAct的碰撞类型：1=>子弹碰子弹, 2=>子弹碰人, 3=>任意
         bullet.dir = 2 //朝向 1->左，2->右
-    }
-
-    export class myCharacter{
-        basicSet: (p: Character)=>void
-        skillSet: (p: Character)=>void
-        img: Image
-        constructor(img: Image){
-            this.basicSet = (p: Character)=>{}
-            this.skillSet = (p: Character)=>{}
-            this.img = img
-        }
-    }
-
-    let myCharacters: {c: myCharacter, name: string}[] = []
-
-    //%block
-    //%group="自定义人物"
-    //%blockId=basicSet block="自定义人物 %img=screen_image_picker 命名为 %name"
-    //%str.defl=SkillKind.A mp.defl=0
-    //%weight=99
-    //%draggableParameters="player"
-    export function basicSet(img: Image, name: string, bs: (player: Character)=>void){
-        let c = new myCharacter(img)
-        c.basicSet = bs
-        myCharacters.push({c: c, name: name})
-        //%afterOnStart=true
-    }
-
-    //%block
-    //%group="自定义人物"
-    //%blockId=skillSet block="自定义人物 %name 技能"
-    //%str.defl=SkillKind.A mp.defl=0
-    //%weight=98
-    //%draggableParameters="player"
-    export function skillSet(name: string, ss: (player: Character)=>void){
-        for(let x of myCharacters){
-            if(x.name == name){
-                x.c.skillSet = ss
-                break
-            }
-        }
-    }
-
-    //%block
-    //%group="自定义人物"
-    //%blockId=exportCharacter block="导出人物%name"
-    export function exportCharacter(name: string){
-        if(playGame.characters == undefined){
-            playGame.characters = []
-        }
-        for(let x of myCharacters){
-            if(x.name == name){
-                playGame.characters.push({character: x.c, name: name})
-                break
-            }
-        }
-        
     }
 
     export class Character{
@@ -2137,14 +2120,6 @@ namespace myGame{
         tempVar.map[key] += val
     }
 
-    // //%block
-    // //%group="技能设置"
-    // //%blockId=newDic block="临时变量"
-    // //%weight=89
-    // export function newDic(){
-    //     return new tempVarDic()
-    // }
-
     //%block
     //%group="技能设置"
     //%afterOnStart=true
@@ -2234,7 +2209,7 @@ namespace myGame{
     export let tempVar = new tempVarDic()
 
     //%block
-    //%group="技能设置"
+    //%group="弹射物设置"
     //%blockId=shoot block="%p=variables_get(player) 发射 %img=screen_image_picker 从x $x y $y 朝向角度 $a 速率 $s 与发射点到距离 $d"
     //%a.defl=0 s.defl=50 x.defl=0 y.defl=0  d.defl=0
     //%weight=81
@@ -2266,7 +2241,7 @@ namespace myGame{
     }
 
     //%block
-    //%group="技能设置"
+    //%group="弹射物设置"
     //%blockId=splitshoot block="(空爆) %p=variables_get(projectile) 偏移x %x y %y射出 %img=screen_image_picker 朝向角度 $a 速率 $s 与发射点到距离 $d"
     //%a.defl=0 x.defl=0 y.defl=0 s.defl=50 d.defl=0
     //%weight=78
@@ -2297,7 +2272,7 @@ namespace myGame{
     }
 
     //%block
-    //%group="技能设置"
+    //%group="弹射物设置"
     //%blockId=tailshoot block="(尾焰) %p=variables_get(projectile) 每隔%t ms 产生尾焰 %img=screen_image_picker 生命周期 %life ms"
     //%t.defl=100 life.defl=500 d.defl=0
     //%weight=77
@@ -2334,7 +2309,7 @@ namespace myGame{
 
     //% blockId=overlapAct block="(地雷) %p=variables_get(projectile) 被 %k=overlapKind 触碰后" 
     //% topblock=false
-    //% group="技能设置"
+    //% group="弹射物设置"
     //% handlerStatement=true
     //% k.defl=overlapKind.three
     //% draggableParameters="reporter"
@@ -2354,7 +2329,7 @@ namespace myGame{
 
     //% blockId=bulletInterval block="每隔%t 秒 持续执行 直到 %p=variables_get(projectile) 消亡" 
     //% topblock=false
-    //% group="技能设置"
+    //% group="弹射物设置"
     //% handlerStatement=true
     //% draggableParameters="reporter"
     //% weight=75
@@ -2372,16 +2347,17 @@ namespace myGame{
 
     //% blockId=cbpromisethen block="after %delay s then" 
     //% topblock=false
-    //% group="技能设置"
+    //% group="弹射物设置"
     //% handlerStatement=true
     //% draggableParameters="reporter"
     //% weight=79
+    //% color=12
     export function then(delay:number, cb:(projectile: wave) => void ) {
         currentRequest.pushCb(delay*1000, cb)
     }
 
     //% blockId=cbpromiseinvoke block="invoke" 
-    //% group="技能设置"
+    //% group="弹射物设置"
     function invoke() {
         const _currentRequest = currentRequest
         control.runInParallel(() => {
@@ -2394,9 +2370,10 @@ namespace myGame{
     }
 
     //%block
-    //%group="技能设置"
+    //%group="弹射物设置"
     //%blockId=setBullet block="设置弹射物%b=variables_get(projectile) 属性 %k=bulletP 为 %v"
     //%v.defl=0
+    //%weight=78
     export function setBullet(b:wave, k: bulletP, v: number){
         if(k == bulletP.damage){
             b.damage = v
@@ -2416,9 +2393,10 @@ namespace myGame{
     }
 
     //%block
-    //%group="技能设置"
+    //%group="弹射物设置"
     //%blockId=setBullet2 block="设置弹射物%b=variables_get(projectile) 特殊效果 %k=bulletP2 为 %v"
     //%v.defl=true
+    //%weight=78
     export function setBullet2(b:wave, k: bulletP2, v: boolean){
         if(k == bulletP2.breakdef){
             b.breakdef = v
@@ -2435,7 +2413,7 @@ namespace myGame{
     }
 
     // 自机狙
-    //%group="技能设置"
+    //%group="弹射物设置"
     //%blockId=aimedshot block="(自机狙) %p=variables_get(player) 的弹射物 %bullet=variables_get(projectile) 转向敌方 ||转向速率 %time"
     //%time.defl=573
     export function aimedshot(p: Character, bullet: wave, time: number = 573){
@@ -2475,7 +2453,7 @@ namespace myGame{
     }
 
     //%block
-    //%group="技能设置"
+    //%group="弹射物设置"
     //%blockId=turnTo block="偏移 %p=variables_get(projectile) 转向角度 %angel ||速率%v"
     //%angel.defl=0 v.defl=1146
     //%inlineInputMode=inline
@@ -2499,7 +2477,7 @@ namespace myGame{
     }
 
     //%block
-    //%group="技能设置"
+    //%group="弹射物设置"
     //%blockId=circular block="转圈 %p=variables_get(projectile) ||半径%r 半径递增速率%v %t 时针 偏移速率%ov 偏移角度%oa"
     //%r.defl=30 v=0 t.defl=clockwise.p
     //%inlineInputMode=inline
@@ -2537,7 +2515,7 @@ namespace myGame{
     }
 
     //%block
-    //%group="技能设置"
+    //%group="弹射物设置"
     //%blockId=movetoxy block="移动 %sprite=variables_get(projectile) 在%time 秒内接近 位置x %desx y %desy"
     //%inlineInputMode=inline
     export function movetoxy (sprite: Sprite, time: number, desx: number, desy: number) {
@@ -2546,7 +2524,7 @@ namespace myGame{
     }
 
     //%block
-    //%group="技能设置"
+    //%group="弹射物设置"
     //%blockId=movetox block="移动 %sprite=variables_get(projectile) 在%time 秒内接近 位置x %desx"
     //%inlineInputMode=inline
     export function movetox (sprite: Sprite, time: number, desx: number) {
@@ -2561,7 +2539,7 @@ namespace myGame{
     }
 
     //%block
-    //%group="技能设置"
+    //%group="弹射物设置"
     //%blockId=movetoy block="移动 %sprite=variables_get(projectile) 在%time 秒内接近 位置y %desy"
     //%inlineInputMode=inline
     export function movetoy (sprite: Sprite, time: number, desy: number) {
@@ -2576,7 +2554,7 @@ namespace myGame{
     }
 
     //%block
-    //%group="技能设置"
+    //%group="弹射物设置"
     //%blockId=movexy block="移动 %sprite=variables_get(projectile) 在%time 秒内移动 x %dx y %dy"
     //%inlineInputMode=inline
     export function movexy (sprite: Sprite, time: number, dx: number, dy: number) {
@@ -2589,7 +2567,7 @@ namespace myGame{
     }
 
     //%block
-    //%group="技能设置"
+    //%group="弹射物设置"
     //%blockId=accelerateToV block="加速 %sprite=variables_get(projectile) 在%time 秒内加速到 vx %dx vy %dy"
     //%inlineInputMode=inline
     export function acceToV (sprite: Sprite, time: number, vx: number, vy: number) {
@@ -2680,10 +2658,26 @@ namespace myGame{
 
     //%block
     //%group="人物动作"
-    //%blockId=jump block="起跳 %p=variables_get(player)"
+    //%blockId=jump block="起跳 %p=variables_get(player) ||竖直速度%vy 水平速度%vx"
+    //%vy.defl=100 vx.defl=0
     //%weight=98
-    export function jump(p: Character){
-        p.updown();
+    export function jump(p: Character, vy: number, vx: number){
+        // p.updown();
+        p.jump = 1
+        p.stop()
+        if (p.laspres == 1) {
+            p.mySprite.vx = -vx
+        } else {
+            p.mySprite.vx = vx
+        }
+        p.mySprite.vy = vy
+        p.toground(()=>{
+            p.jump = 0
+            p.skill = 0
+            if(p.hurted == 0)
+                p.move(p.walkspeed) //恢复控制
+            p.mySprite.vx = 0
+        })
     }
 
     //%block

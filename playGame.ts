@@ -457,24 +457,7 @@ namespace playGame{
         if(characters == null || index >= characters.length){
             return null
         }
-        let newPlayer = new myGame.Character(sprites.create(img`
-            . . . . . . . . . . . . . . . .
-            . . . . . . . . . . . . . . . .
-            . . . . . . . . . . . . . . . .
-            . . . . . . . . . . . . . . . .
-            . . . . . . . . . . . . . . . .
-            . . . . . . . . . . . . . . . .
-            . . . . . . . . . . . . . . . .
-            . . . . . . . . . . . . . . . .
-            . . . . . . . . . . . . . . . .
-            . . . . . . . . . . . . . . . .
-            . . . . . . . . . . . . . . . .
-            . . . . . . . . . . . . . . . .
-            . . . . . . . . . . . . . . . .
-            . . . . . . . . . . . . . . . .
-            . . . . . . . . . . . . . . . .
-            . . . . . . . . . . . . . . . .
-        `), controller.player1, SpriteKind.p1atk)
+        let newPlayer = new myGame.Character(sprites.create(characters[index].character.img), controller.player1, SpriteKind.p1atk)
         characters[index].character.basicSet(newPlayer)
         characters[index].character.skillSet(newPlayer)
         //copy(characters[index].character, newPlayer)
