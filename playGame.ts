@@ -225,7 +225,6 @@ namespace playGame{
     b2.setFlag(SpriteFlag.Invisible, true)
     let clock1 = -1
     let clock2 = -1
-    let interval = -1
     let dialog1: game.Dialog
     let dialog2: game.Dialog
     let txt1: game.Dialog
@@ -320,6 +319,7 @@ namespace playGame{
 
         let t = 150
         let lock = 0
+        let interval: number
         interval = setInterval(()=>{
             if(clock1 == -2 && clock2 == -2){
                 if(lock == 0

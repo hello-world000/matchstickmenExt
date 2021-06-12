@@ -2569,13 +2569,6 @@ namespace myGame{
         n
     }
 
-    //%block
-    //%group="自定义弹射物"
-    //%blockId=stopcircular block="停止转圈 %p=variables_get(projectile)"
-    export function stopcircular(sprite: Sprite){
-        clearInterval((<wave>sprite).circlock);
-        (<wave>sprite).circlock = -1
-    }
 
     //%block
     //%group="自定义弹射物"
@@ -2599,6 +2592,14 @@ namespace myGame{
             }
             sprite.setVelocity(speed*Math.cos(angel0),speed*Math.sin(angel0))
         }, 0)
+    }
+
+    //%block
+    //%group="自定义弹射物"
+    //%blockId=stopcircular block="停止转圈 %p=variables_get(projectile)"
+    export function stopcircular(sprite: Sprite){
+        clearInterval((<wave>sprite).circlock);
+        (<wave>sprite).circlock = -1
     }
 
     //%block
@@ -2925,6 +2926,8 @@ namespace myGame{
         }
         else if(k == stimgKind.Stand){
             p.standard = img
+            p.rstandard = img.clone()
+            p.rstandard.flipX()
         }
         else if(k == stimgKind.Quickst){
             p.quickst = img
