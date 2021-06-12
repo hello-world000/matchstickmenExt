@@ -97,6 +97,8 @@ namespace myGame{
         indeflectible,
         //% block="碰撞消亡"
         perishTogether,
+        //% block="被攻击消亡"
+        attachPlayer
     }
 
     export enum abilityKind{
@@ -331,6 +333,7 @@ namespace myGame{
         overlapKind = 3 //引发overlapAct的碰撞类型：1=>子弹碰子弹, 2=>子弹碰人, 3=>任意
         dir = 2 //朝向 1->左，2->右
         own: Character //归属
+        attachOwner = false //所有者被攻击时自动销毁
     }
 
     function reset(own: Character, bullet: wave, damage = 1, hitrec = 100, hurted = 1, 
@@ -353,6 +356,7 @@ namespace myGame{
         bullet.overlapAct = ()=>{} //碰撞后的行为
         bullet.overlapKind = 3 //引发overlapAct的碰撞类型：1=>子弹碰子弹, 2=>子弹碰人, 3=>任意
         bullet.dir = 2 //朝向 1->左，2->右
+        bullet.attachOwner = false
     }
 
     //%block
@@ -365,8 +369,22 @@ namespace myGame{
     //%block
     //% group="自定义弹射物"
     //%blockId=projectileOwner block="%b=variables_get(projectile) 的所有者"
+    //%weight=99
     export function projectileOwner(b: wave): Character {
         return b.own
+    }
+
+    //%block
+    //%group="自定义弹射物"
+    //%blockId=blankprojectile block="%p=variables_get(player) 的弹射物"
+    //%weight=99
+    export function blankprojectile(p: Character): wave{
+        let ret = <wave>sprites.createProjectileFromSprite(img`
+            .
+        `, p.mySprite, p.mySprite.vx, 0)
+        reset(p, ret)
+        ret.lifespan = 0
+        return ret
     }
 
     //%block
@@ -378,10 +396,28 @@ namespace myGame{
     }
 
     sprites.onDestroyed(SpriteKind.p1atk, function(sprite: Sprite) {
-        (<wave>sprite).isDestroyed = true
+        let b = <wave>sprite
+        b.isDestroyed = true
+        if(b.attachOwner){
+            for(let i = 0; i < b.own.attachBullet.length; ++i){
+                if(b.own.attachBullet[i] == b){
+                    b.own.attachBullet.removeAt(i)
+                    break
+                }
+            }
+        }
     })
     sprites.onDestroyed(SpriteKind.p2atk, function(sprite: Sprite) {
-        (<wave>sprite).isDestroyed = true
+        let b = <wave>sprite
+        b.isDestroyed = true
+        if(b.attachOwner){
+            for(let i = 0; i < b.own.attachBullet.length; ++i){
+                if(b.own.attachBullet[i] == b){
+                    b.own.attachBullet.removeAt(i)
+                    break
+                }
+            }
+        }
     })
 
     export class Character{
@@ -411,6 +447,7 @@ namespace myGame{
         hitoverST = 0 //击飞中
         immu = 0 //无敌中
         enemySprite: Sprite = null
+        attachBullet: wave[] = []
         setEnemy(other: Sprite){
             this.enemySprite = other
         }
@@ -976,6 +1013,10 @@ namespace myGame{
                     //this.hits += (<wave>sprite).hurted //Math.max(++this.hits, (<wave>sprite).hurted)
                     this.hitrec((<wave>sprite).hitrec, this.hits-1, sprite.x < otherSprite.x, <wave>sprite)
                 }
+                while (this.attachBullet.length != 0) {
+                    let b = this.attachBullet.removeAt(0)
+                    b.destroy()
+                }
             }
             perish(<wave>sprite, 2)
             if (this.statusbar.value == 0) {
@@ -1060,23 +1101,21 @@ namespace myGame{
             animation.stopAnimation(animation.AnimationTypes.All, this.mySprite)
             let projectile = <wave>sprites.createProjectileFromSprite(img222, this.mySprite, this.mySprite.vx, 0)
             projectile.lifespan = life;
-            let follow = setInterval(()=>{
-                if(projectile != null){
+            let follow: number
+            follow = setInterval(()=>{
+                if(projectile != null && !projectile.isDestroyed){
                     if(this.hurted == 0){
                         projectile.setPosition(this.mySprite.x, this.mySprite.y)
                     }
                     else{
                         projectile.destroy();
-
                     }
                 }
-            }, 10)
-            setTimeout(()=>{
-                clearInterval(follow)
-                if(projectile != null){
-                    projectile.destroy();
+                else{
+                    clearInterval(follow)
+                    follow = -1
                 }
-            }, life)
+            }, 10)
             reset(this, projectile)
             if (this.laspres == 1) {
                 projectile.image.flipX()
@@ -1143,10 +1182,11 @@ namespace myGame{
             this.defence = 0
         }
         // 反击，防御状态被攻击才能发出
-        counterAttack(atk: ()=>void){
+        counterAttack(mp: number, atk: ()=>void){
             if(this.hurted == -1){
                 this.hurted = 0
                 this.skill = 0
+                this.mpbar.value -= mp
                 atk()
                 if(this.defence != 0){
                     this.stand(true)
@@ -1161,7 +1201,7 @@ namespace myGame{
             })
             
             setSkill(this, SkillKind.A1, 0, (tempVar: tempVarDic, that: Character)=>{ //反击: ⬇️+A
-                that.counterAttack(()=>{
+                that.counterAttack(0, ()=>{
                     that.basicAttack('A')
                     let s = 60
                     for(let i = 0; i < 3; ++i){
@@ -2015,12 +2055,13 @@ namespace myGame{
             setInterval(()=>{
                 this.mpbar.value = Math.min(100, this.mpbar.value+100/Math.max(10, this.hp))
             }, 500)
+            // setInterval(()=>{
+            //     if(this.player == controller.player1)
+            //     {
+            //         console.log(this.attachBullet.length)
+            //     }
+            // }, 100)
             game.onUpdate(function() {
-                // if(this.player == controller.player1)
-                // {
-                //     //console.log([this.hitoverST, this.jump])
-                //     console.log([this.rush, this.leftDOWN, this.rightDOWN])
-                // }
                 if( (this.rightDOWN&1) == 1
                     && (this.hurted | this.jump | this.defence | this.attack) == 0){
                     if(f != 0){
@@ -2527,6 +2568,20 @@ namespace myGame{
         else if(k == bulletP2.perishTogether){
             b.perishTogether = v
         }
+        else if(k == bulletP2.attachPlayer){
+            b.attachOwner = v
+            if(v){
+                b.own.attachBullet.push(b)
+            }
+            else {
+                for(let i = 0; i < b.own.attachBullet.length; ++i){
+                    if(b.own.attachBullet[i] == b){
+                        b.own.attachBullet.removeAt(i)
+                        break
+                    }
+                }
+            }
+        }
     }
 
     // 自机狙
@@ -2714,11 +2769,11 @@ namespace myGame{
     
     // 反击，防御状态被攻击才能发出
     //%group="技能设置"
-    //%blockId=counterAttack block="(反击) %p=variables_get(player) 尝试执行"
+    //%blockId=counterAttack block="(反击) %p=variables_get(player) 尝试执行 消耗mp %mp"
     //% topblock=false
     //% handlerStatement=true
-    export function counterAttack(p: Character, func: ()=>void){
-        p.counterAttack(func)
+    export function counterAttack(p: Character, mp: number = 0, func: ()=>void){
+        p.counterAttack(mp, func)
     }
 
     // 自动攻击，暂停控制，按[下]退出
@@ -2874,6 +2929,7 @@ namespace myGame{
     export function newPosture(p: Character, img: Image, t: number = 0.3, atk: Image){
         if(p.hurted > 0){
             let ret = <wave>sprites.createProjectileFromSprite(img, p.mySprite, p.mySprite.vx, 0)
+            reset(p, ret)
             ret.lifespan = 0
             return ret
         }
