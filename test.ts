@@ -2115,12 +2115,9 @@
 //         `], 100)
 //     myGame.setAbility(player3, myGame.abilityKind.jumpspeed, 150)
 // })
+// let projectile: myGame.wave = null
 // let 替身巨龙 = ""
 // let 火球 = ""
-// let projectile: myGame.wave = null
-// let projectile2 = 0
-// projectile2 = null
-// projectile = null
 // playGame.characterMenus()
 // myGame.skillSet("恶龙", function (player2) {
 //     myGame.setSkill(player2, myGame.SkillKind.B8, 8, function (tempVar, player4) {
@@ -2169,7 +2166,6 @@
 //             `), 180, 3, 0.3, 0, 火球)
 //     })
 //     myGame.setSkill(player2, myGame.SkillKind.A8, 5, function (tempVar, player4) {
-//         myGame.add(tempVar, "a", 190)
 //         multishot(myGame.newPosture(player4, img`
 //             ........................................
 //             ........................................
@@ -2944,7 +2940,7 @@
 //     myGame.setSkill(player3, myGame.SkillKind.A9, 10, function (tempVar, player3) {
 //         myGame.shoot2(player3, "死灵粒子", player3.x, player3.y)
 //     })
-//     myGame.setSkill(player3, myGame.SkillKind.A, 15, function (tempVar, player3) {
+//     myGame.setSkill(player3, myGame.SkillKind.A10, 15, function (tempVar, player3) {
 //         myGame.add2(tempVar, "projectile", myGame.newPosture(player3, img`
 //             ........................
 //             ........................
