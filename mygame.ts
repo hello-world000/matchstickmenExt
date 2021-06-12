@@ -154,8 +154,9 @@ namespace myGame{
         three
     }
 
-    //重叠消亡 collision: 0=>未碰撞/超时重制, 1=>子弹碰子弹, 2=>子弹碰人
-    function perish(sprite: wave){
+    //重叠消亡 k(collision): 0=>未碰撞/超时重置, 1=>子弹碰子弹, 2=>子弹碰人
+    function perish(sprite: wave, k: number){
+        sprite.collision = k
         if(sprite.overlapKind == 3 || sprite.collision == sprite.overlapKind){
             sprite.overlapAct()
         }
@@ -174,8 +175,6 @@ namespace myGame{
     }
 
     sprites.onOverlap(SpriteKind.p2atk, SpriteKind.p1atk, function (sprite, otherSprite) {
-        (<wave>sprite).collision = 1;
-        (<wave>otherSprite).collision = 1
         if((<wave>sprite).indeflectible == false 
             && (<wave>sprite).rebound == false && (<wave>otherSprite).rebound == true){
             sprite.setKind(SpriteKind.p1atk)
@@ -195,8 +194,8 @@ namespace myGame{
             (<wave>otherSprite).dir = (<wave>sprite).dir==1 ? 2 : 1
         }
         else{
-            perish(<wave>sprite)
-            perish(<wave>otherSprite)
+            perish(<wave>sprite, 1);
+            perish(<wave>otherSprite, 1)
         }
     })
 
@@ -220,18 +219,8 @@ namespace myGame{
     //%weight=99
     //%draggableParameters="player"
     export function basicSet(img: Image, name: string, bs: (player: Character)=>void){
-        // for(let x of myCharacters){
-        //     if(x.name == name){
-        //         x.c.basicSet = bs
-        //         x.c.img = img
-        //         exportCharacter(name)
-        //         return
-        //     }
-        // }
         if(myCharacters[name] != undefined){
-            myCharacters[name].basicSet = bs
-            myCharacters[name].img = img
-            exportCharacter(name)
+            console.log("定义人物时发生人物命名冲突："+name)
             return
         }
         let c = new myCharacter()
@@ -252,20 +241,11 @@ namespace myGame{
     //%draggableParameters="player"
     //%afterOnStart=true
     export function skillSet(name: string, ss: (player: Character)=>void){
-        // for(let x of myCharacters){
-        //     if(x.name == name){
-        //         x.c.skillSet = ss
-        //         return
-        //     }
-        // }
-        if(myCharacters[name] != undefined){
-            myCharacters[name].skillSet = ss
+        if(myCharacters[name] == undefined){
+            console.log("设置技能时人物 '"+name+"' 未定义!")
             return
         }
-        let c = new myCharacter()
-        c.skillSet = ss
-        //myCharacters.push({c: c, name: name})
-        myCharacters[name] = c
+        myCharacters[name].skillSet = ss
     }
 
     /*//%block
@@ -353,6 +333,28 @@ namespace myGame{
         own: Character //归属
     }
 
+    function reset(own: Character, bullet: wave, damage = 1, hitrec = 100, hurted = 1, 
+    breakdef = false, xspeed = 50, yspeed = 20, rebound = false, 
+    indeflectible = false, isDestroyed = false, perishTogether = true){
+        bullet.own = own
+        bullet.damage = damage //伤害
+        bullet.hitrec = hitrec //被攻击方硬直时间
+        bullet.hurted = hurted //攻击轻重,越大越容易击倒
+        bullet.breakdef = breakdef //是否破防
+        bullet.xspeed = xspeed //击飞时的x轴速度
+        bullet.yspeed = yspeed //击飞时的y轴速度
+        bullet.rebound = rebound //反射敌方子弹
+        bullet.indeflectible = indeflectible //不受反射
+        bullet.isDestroyed = isDestroyed //已消亡
+        bullet.perishTogether = perishTogether //碰撞后消亡
+        bullet.collision = 0 //上次碰撞类型：0=>未碰撞/超时重制, 1=>子弹碰子弹, 2=>子弹碰人
+        bullet.interval = -1 //碰撞后不消亡使用的时钟
+        bullet.circlock = -1
+        bullet.overlapAct = ()=>{} //碰撞后的行为
+        bullet.overlapKind = 3 //引发overlapAct的碰撞类型：1=>子弹碰子弹, 2=>子弹碰人, 3=>任意
+        bullet.dir = 2 //朝向 1->左，2->右
+    }
+
     //%block
     //% group="自定义弹射物"
     //%blockId=isDestroyed block="%b=variables_get(projectile) 已销毁"
@@ -381,26 +383,6 @@ namespace myGame{
     sprites.onDestroyed(SpriteKind.p2atk, function(sprite: Sprite) {
         (<wave>sprite).isDestroyed = true
     })
-    function reset(bullet: wave, damage = 1, hitrec = 100, hurted = 1, 
-    breakdef = false, xspeed = 50, yspeed = 20, rebound = false, 
-    indeflectible = false, isDestroyed = false, perishTogether = true){
-        bullet.damage = damage //伤害
-        bullet.hitrec = hitrec //被攻击方硬直时间
-        bullet.hurted = hurted //攻击轻重,越大越容易击倒
-        bullet.breakdef = breakdef //是否破防
-        bullet.xspeed = xspeed //击飞时的x轴速度
-        bullet.yspeed = yspeed //击飞时的y轴速度
-        bullet.rebound = rebound //反射敌方子弹
-        bullet.indeflectible = indeflectible //不受反射
-        bullet.isDestroyed = isDestroyed //已消亡
-        bullet.perishTogether = perishTogether //碰撞后消亡
-        bullet.collision = 0 //上次碰撞类型：0=>未碰撞/超时重制, 1=>子弹碰子弹, 2=>子弹碰人
-        bullet.interval = -1 //碰撞后不消亡使用的时钟
-        bullet.circlock = -1
-        bullet.overlapAct = ()=>{} //碰撞后的行为
-        bullet.overlapKind = 3 //引发overlapAct的碰撞类型：1=>子弹碰子弹, 2=>子弹碰人, 3=>任意
-        bullet.dir = 2 //朝向 1->左，2->右
-    }
 
     export class Character{
         laspres = -1 //方向
@@ -920,8 +902,7 @@ namespace myGame{
                 return
             }
             if(this.immu == 1){
-                (<wave>sprite).collision = 0
-                perish(<wave>sprite)
+                perish(<wave>sprite, 0)
                 return
             }
             if((<wave>sprite).damage == 0){
@@ -996,8 +977,7 @@ namespace myGame{
                     this.hitrec((<wave>sprite).hitrec, this.hits-1, sprite.x < otherSprite.x, <wave>sprite)
                 }
             }
-            (<wave>sprite).collision = 2
-            perish(<wave>sprite)
+            perish(<wave>sprite, 2)
             if (this.statusbar.value == 0) {
                 if(this.player == controller.player1){
                     game.splash("player2 win!")
@@ -1037,9 +1017,25 @@ namespace myGame{
                     this.hits2 = 0
                     this.hitoverST = 0
                     setTimeout(()=>{
+                        let c1: number
+                        let c2: number
+                        let c3: number
+                        c1 = setInterval(()=>{
+                            this.mySprite.setFlag(SpriteFlag.Invisible, true)
+                        }, 200)
+                        c3 = setTimeout(()=>{
+                            c3 = -1
+                            c2 = setInterval(()=>{
+                                this.mySprite.setFlag(SpriteFlag.Invisible, false)
+                            }, 200)
+                        }, 100)
                         this.stand()
                         setTimeout(()=>{
                             this.immu = 0
+                            clearInterval(c1)
+                            clearInterval(c2)
+                            clearTimeout(c3)
+                            this.mySprite.setFlag(SpriteFlag.Invisible, false)
                         }, this.immutime)
                     }, this.downtime)
                 })
@@ -1081,8 +1077,7 @@ namespace myGame{
                     projectile.destroy();
                 }
             }, life)
-            projectile.own = this
-            reset(projectile)
+            reset(this, projectile)
             if (this.laspres == 1) {
                 projectile.image.flipX()
                 projectile.dir = 1
@@ -1093,12 +1088,11 @@ namespace myGame{
         }
         attackAction (atk: Image, life: number, Aatk: boolean) {
             let projectile = this.attackPosture(atk, life)
-            projectile.own = this
             if(Aatk){
-                reset(projectile, this.damageA, this.hitrecA)
+                reset(this, projectile, this.damageA, this.hitrecA)
             }
             else{
-                reset(projectile, this.damageB, this.hitrecB, 2)
+                reset(this, projectile, this.damageB, this.hitrecB, 2)
             }
         }
         
@@ -2114,8 +2108,7 @@ namespace myGame{
         for(let index = beginAngel; index <= endAngel; index += offset)
         {
             let bullet = <wave>sprites.createProjectileFromSide(img.clone(), 0, 0)
-            bullet.own = p
-            reset(bullet)
+            reset(p, bullet)
             bullet.setPosition(x, y)
             bullet.setVelocity(speed*Math.cos(index/57.3), speed*Math.sin(index/57.3))
             if(p.laspres == 1){
@@ -2316,6 +2309,9 @@ namespace myGame{
     //% handlerStatement=true
     //%afterOnStart=true
     export function setProjectile(img: Image, name:string, cb:(projectile: wave)=>void){
+        if(projectiles[name] != undefined){
+            console.log("定义弹射物时发生弹射物命名冲突："+name)
+        }
         let bullet = new myProjectile
         bullet.img = img
         bullet.cb = cb;
@@ -2334,12 +2330,11 @@ namespace myGame{
         let bullet: wave
         let func: (projectile: wave)=>void
         if(projectiles[name] == undefined){
-                console.log("projectile name '"+name+"' error!")
+            console.log("发射的弹射物 '"+name+"' 未定义!")
         }
         bullet = <wave>sprites.createProjectileFromSide(projectiles[name].img.clone(), 0, 0)
         func = projectiles[name].cb
-        bullet.own = p
-        reset(bullet)
+        reset(p, bullet)
         a+=180
         if(p.laspres == 1){
             a = 180-a
@@ -2371,12 +2366,11 @@ namespace myGame{
             let bullet: wave
             let func: (projectile: wave)=>void
             if(projectiles[name] == undefined){
-                console.log("projectile name '"+name+"' error!")
+                console.log("空爆的弹射物 '"+name+"' 未定义!")
             }
             bullet = <wave>sprites.createProjectileFromSide(projectiles[name].img.clone(), 0, 0)
             func = projectiles[name].cb
-            bullet.own = p.own
-            reset(bullet)
+            reset(p.own, bullet)
             a+=180
             if(p.dir == 1){
                 a = 180-a
@@ -2408,8 +2402,7 @@ namespace myGame{
         clock = setInterval(function() {
             if(!p.isDestroyed){
                 let bullet = <wave>sprites.createProjectileFromSide(img.clone(), 0, 0)
-                bullet.own = p.own
-                reset(bullet)
+                reset(p.own, bullet)
                 bullet.setPosition(p.x, p.y)
                 bullet.lifespan = life
                 bullet.damage = 0

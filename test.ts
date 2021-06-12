@@ -2264,7 +2264,7 @@
 //             `)
 //         myGame.shoot2(player4, "火焰弹", player4.x, player4.y + 3, 180, 100, 10)
 //     })
-//     myGame.setSkill(player2, myGame.SkillKind.A, 15, function (tempVar, player4) {
+//     myGame.setSkill(player2, myGame.SkillKind.A9, 15, function (tempVar, player4) {
 //         multishot(myGame.newPosture(player4, img`
 //             ........................................
 //             ........................................
