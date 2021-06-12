@@ -250,8 +250,8 @@ namespace myGame{
     //%str.defl=SkillKind.A mp.defl=0
     //%weight=98
     //%draggableParameters="player"
+    //%afterOnStart=true
     export function skillSet(name: string, ss: (player: Character)=>void){
-        //%afterOnStart=true
         // for(let x of myCharacters){
         //     if(x.name == name){
         //         x.c.skillSet = ss
@@ -283,6 +283,15 @@ namespace myGame{
         //     }
         // }
         playGame.characters.push({character: myCharacters[name], name: name})
+    }
+
+    //%block
+    //%group="分隔符"
+    //%blockId=bar block="块间分隔标记 %s"
+    //%weight=89
+    //%color=2
+    export function bar(s: string){
+
     }
 //=================== 游戏初始化 ===================
     export function setPlayer(p: Character, kind: PlayerKind){
@@ -345,15 +354,6 @@ namespace myGame{
     }
 
     //%block
-    //%group="技能设置"
-    //%blockId=bar block="块间分隔标记 %s"
-    //%weight=89
-    //%color=2
-    export function bar(s: string){
-
-    }
-
-    //%block
     //% group="自定义弹射物"
     //%blockId=isDestroyed block="%b=variables_get(projectile) 已销毁"
     export function isDestroyed(b: wave): boolean{
@@ -370,7 +370,6 @@ namespace myGame{
     //%block
     //%group="自定义弹射物"
     //%blockId=spriteToWave block="将精灵 %b=variables_get(sprite) 转化为弹射物"
-    //%blockSetVariable="projectile"
     //%weight=100
     export function spriteToWave(b: Sprite): wave{
         return <wave>b
@@ -2131,9 +2130,19 @@ namespace myGame{
 //=================== 技能设置 ===================
     export class tempVarDic{
         map: { [key: string]: number; }
+        map2: {[key: string]: wave; }
         constructor(){
             this.map = {}
+            this.map2 = {}
         }
+    }
+
+    //%block
+    //%group="技能设置"
+    //%blockId=getTempVar block="获取临时变量 %t=variables_get(tempVar) %key"
+    //%weight=89
+    export function getVal(tempVar: tempVarDic, key: string){
+        return tempVar.map[key]
     }
 
     //%block
@@ -2146,10 +2155,18 @@ namespace myGame{
 
     //%block
     //%group="技能设置"
-    //%blockId=getTempVar block="获取临时变量 %t=variables_get(tempVar) %key"
-    //%weight=89
-    export function getVal(tempVar: tempVarDic, key: string){
-        return tempVar.map[key]
+    //%blockId=getTempVar2 block="获取临时弹射物 %t=variables_get(tempVar) %key"
+    //%weight=88
+    export function getVal2(tempVar: tempVarDic, key: string){
+        return tempVar.map2[key]
+    }
+
+    //%block
+    //%group="技能设置"
+    //%blockId=addTempVar2 block="设置临时弹射物 %t=variables_get(tempVar) %key 为 %val=variables_get(projectile)"
+    //%weight=88
+    export function add2(tempVar: tempVarDic, key: string, val: wave){
+        tempVar.map2[key] = val
     }
 
     //%block
@@ -2275,9 +2292,18 @@ namespace myGame{
     //%group="自定义弹射物"
     //%blockId=setProjectiles block="自定义弹射物集合 标记名为%name"
     //%weight=100
-    //%inlineInputMode=inline
+    //%afterOnStart=true
     export function setProjectiles(name:string, cb:()=>void){
         cb()
+    }
+
+    //%block
+    //%group="自定义弹射物"
+    //%blockId=strProjectiles block="弹射物名称 %name"
+    //%weight=98
+    //%blockSetVariable=projectileName
+    export function strProjectiles(name: string){
+        return name
     }
 
     //%block
@@ -2288,6 +2314,7 @@ namespace myGame{
     //%draggableParameters="projectile"
     //% topblock=false
     //% handlerStatement=true
+    //%afterOnStart=true
     export function setProjectile(img: Image, name:string, cb:(projectile: wave)=>void){
         let bullet = new myProjectile
         bullet.img = img
@@ -2845,14 +2872,14 @@ namespace myGame{
 
     //%block
     //%group="人物动作"
-    //%blockId=newPosture block="近身攻击 %p=variables_get(player) 摆出姿势 %img=screen_image_picker %t 秒 攻击部位(弹射物) %atk=screen_image_picker "
+    //%blockId=newPosture block="近身攻击 %p=variables_get(player) 摆出姿势 %img=screen_image_picker %t 秒 攻击部位(projectile) %atk=screen_image_picker "
     //%inlineInputMode=inline
     //%t.defl=0.3
     //%weight=97
     //%blockSetVariable="projectile"
     export function newPosture(p: Character, img: Image, t: number = 0.3, atk: Image){
-        if(p.hurted != 0){
-            let ret = <wave>sprites.createProjectileFromSprite(atk, p.mySprite, p.mySprite.vx, 0)
+        if(p.hurted > 0){
+            let ret = <wave>sprites.createProjectileFromSprite(img, p.mySprite, p.mySprite.vx, 0)
             ret.lifespan = 0
             return ret
         }
