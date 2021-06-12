@@ -278,7 +278,7 @@
 //     . . . . . . . . . . . . . . . . 
 //     . . . . . . . . . . . . . . . . 
 //     `, "火焰轮", function (projectile) {
-//         myGame.circular(projectile, 5, 1, myGame.clockwise.p, 45, 180)
+//         myGame.circular(projectile, 4, 0, myGame.clockwise.p, 45, 180)
 //         myGame.setBullet2(projectile, myGame.bulletP2.indeflectible, true)
 //         myGame.setBullet2(projectile, myGame.bulletP2.perishTogether, false)
 //     })

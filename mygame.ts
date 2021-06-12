@@ -211,8 +211,8 @@ namespace myGame{
         }
     }
 
-    let myCharacters: {c: myCharacter, name: string}[] = []
-
+    //let myCharacters: {c: myCharacter, name: string}[] = []
+    let myCharacters: { [key: string]: myCharacter; } = {}
     //%block
     //%group="自定义人物"
     //%blockId=basicSet block="自定义人物 %img=screen_image_picker 命名为 %name"
@@ -220,17 +220,24 @@ namespace myGame{
     //%weight=99
     //%draggableParameters="player"
     export function basicSet(img: Image, name: string, bs: (player: Character)=>void){
-        for(let x of myCharacters){
-            if(x.name == name){
-                x.c.basicSet = bs
-                x.c.img = img
-                exportCharacter(name)
-                return
-            }
+        // for(let x of myCharacters){
+        //     if(x.name == name){
+        //         x.c.basicSet = bs
+        //         x.c.img = img
+        //         exportCharacter(name)
+        //         return
+        //     }
+        // }
+        if(myCharacters[name] != undefined){
+            myCharacters[name].basicSet = bs
+            myCharacters[name].img = img
+            exportCharacter(name)
+            return
         }
         let c = new myCharacter()
         c.basicSet = bs
-        myCharacters.push({c: c, name: name})
+        myCharacters[name] = c
+        //myCharacters.push({c: c, name: name})
         c.img = img
         exportCharacter(name)
     }
@@ -245,15 +252,20 @@ namespace myGame{
     //%draggableParameters="player"
     export function skillSet(name: string, ss: (player: Character)=>void){
         //%afterOnStart=true
-        for(let x of myCharacters){
-            if(x.name == name){
-                x.c.skillSet = ss
-                return
-            }
+        // for(let x of myCharacters){
+        //     if(x.name == name){
+        //         x.c.skillSet = ss
+        //         return
+        //     }
+        // }
+        if(myCharacters[name] != undefined){
+            myCharacters[name].skillSet = ss
+            return
         }
         let c = new myCharacter()
         c.skillSet = ss
-        myCharacters.push({c: c, name: name})
+        //myCharacters.push({c: c, name: name})
+        myCharacters[name] = c
     }
 
     /*//%block
@@ -264,13 +276,13 @@ namespace myGame{
         if(playGame.characters == undefined){
             playGame.characters = []
         }
-        for(let x of myCharacters){
-            if(x.name == name){
-                playGame.characters.push({character: x.c, name: name})
-                break
-            }
-        }
-        
+        // for(let x of myCharacters){
+        //     if(x.name == name){
+        //         playGame.characters.push({character: x.c, name: name})
+        //         break
+        //     }
+        // }
+        playGame.characters.push({character: myCharacters[name], name: name})
     }
 //=================== 游戏初始化 ===================
     export function setPlayer(p: Character, kind: PlayerKind){
@@ -2294,6 +2306,9 @@ namespace myGame{
         a: number = 180, s: number = 50, d: number = 0){
         let bullet: wave
         let func: (projectile: wave)=>void
+        if(projectiles[name] == undefined){
+                console.log("projectile name '"+name+"' error!")
+        }
         bullet = <wave>sprites.createProjectileFromSide(projectiles[name].img.clone(), 0, 0)
         func = projectiles[name].cb
         bullet.own = p
@@ -2328,6 +2343,9 @@ namespace myGame{
         if(!p.isDestroyed){
             let bullet: wave
             let func: (projectile: wave)=>void
+            if(projectiles[name] == undefined){
+                console.log("projectile name '"+name+"' error!")
+            }
             bullet = <wave>sprites.createProjectileFromSide(projectiles[name].img.clone(), 0, 0)
             func = projectiles[name].cb
             bullet.own = p.own
