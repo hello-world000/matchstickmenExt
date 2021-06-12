@@ -182,6 +182,7 @@ namespace myGame{
             sprite.image.flipX()
             sprite.image.flipY()
             sprite.setVelocity(-sprite.vx, -sprite.vy);
+            (<wave>sprite).own = (<wave>otherSprite).own;
             (<wave>sprite).dir = (<wave>sprite).dir==1 ? 2 : 1
         }
         else if((<wave>otherSprite).indeflectible == false
@@ -190,6 +191,7 @@ namespace myGame{
             otherSprite.image.flipX()
             otherSprite.image.flipY()
             otherSprite.setVelocity(-otherSprite.vx, -otherSprite.vy);
+            (<wave>otherSprite).own = (<wave>sprite).own;
             (<wave>otherSprite).dir = (<wave>sprite).dir==1 ? 2 : 1
         }
         else{
@@ -236,7 +238,7 @@ namespace myGame{
     let curSkillPlayer: Character
 
     //%block
-    //%group="自定义人物"
+    //%group="技能设置"
     //%blockId=skillSet block="自定义人物 %name 技能"
     //%str.defl=SkillKind.A mp.defl=0
     //%weight=98
@@ -323,10 +325,11 @@ namespace myGame{
         perishTogether = true //碰撞后消亡
         collision = 1 //上次碰撞类型：0=>未碰撞/超时重制, 1=>子弹碰子弹, 2=>子弹碰人
         interval = -1 //碰撞后不消亡使用的时钟
+        circlock = -1 //转圈时钟
         overlapAct = ()=>{} //碰撞后的行为
         overlapKind = 3 //引发overlapAct的碰撞类型：1=>子弹碰子弹, 2=>子弹碰人, 3=>任意
         dir = 2 //朝向 1->左，2->右
-
+        own: Character //归属
     }
 
     //%block
@@ -339,11 +342,28 @@ namespace myGame{
     }
 
     //%block
-    //% group="弹射物设置"
+    //% group="自定义弹射物"
     //%blockId=isDestroyed block="%b=variables_get(projectile) 已销毁"
     export function isDestroyed(b: wave): boolean{
         return b.isDestroyed
     }
+
+    //%block
+    //% group="自定义弹射物"
+    //%blockId=projectileOwner block="%b=variables_get(projectile) 的所有者"
+    export function projectileOwner(b: wave): Character {
+        return b.own
+    }
+
+    //%block
+    //%group="自定义弹射物"
+    //%blockId=spriteToWave block="将精灵 %b=variables_get(sprite) 转化为弹射物"
+    //%blockSetVariable="projectile"
+    //%weight=100
+    export function spriteToWave(b: Sprite): wave{
+        return <wave>b
+    }
+
     sprites.onDestroyed(SpriteKind.p1atk, function(sprite: Sprite) {
         (<wave>sprite).isDestroyed = true
     })
@@ -365,6 +385,7 @@ namespace myGame{
         bullet.perishTogether = perishTogether //碰撞后消亡
         bullet.collision = 0 //上次碰撞类型：0=>未碰撞/超时重制, 1=>子弹碰子弹, 2=>子弹碰人
         bullet.interval = -1 //碰撞后不消亡使用的时钟
+        bullet.circlock = -1
         bullet.overlapAct = ()=>{} //碰撞后的行为
         bullet.overlapKind = 3 //引发overlapAct的碰撞类型：1=>子弹碰子弹, 2=>子弹碰人, 3=>任意
         bullet.dir = 2 //朝向 1->左，2->右
@@ -764,24 +785,28 @@ namespace myGame{
 
         //% group="人物参数" blockSetVariable="player"
         //% blockCombine block="精灵" callInDebugger
+        //%weight=80
         get sprite(): Sprite {
             return this.mySprite
         }
 
         //% group="人物参数" blockSetVariable="player"
         //% blockCombine block="敌方精灵" callInDebugger
+        //%weight=80
         get enemy(): Sprite {
             return this.enemySprite
         }
 
         //% group="人物参数" blockSetVariable="player"
         //% blockCombine block="x" callInDebugger
+        //%weight=81
         get x(): number {
             return this.mySprite.x
         }
 
         //% group="人物参数" blockSetVariable="player"
         //% blockCombine block="y" callInDebugger
+        //%weight=81
         get y(): number {
             return this.mySprite.y
         }
@@ -1045,6 +1070,7 @@ namespace myGame{
                     projectile.destroy();
                 }
             }, life)
+            projectile.own = this
             reset(projectile)
             if (this.laspres == 1) {
                 projectile.image.flipX()
@@ -1056,6 +1082,7 @@ namespace myGame{
         }
         attackAction (atk: Image, life: number, Aatk: boolean) {
             let projectile = this.attackPosture(atk, life)
+            projectile.own = this
             if(Aatk){
                 reset(projectile, this.damageA, this.hitrecA)
             }
@@ -1272,7 +1299,7 @@ namespace myGame{
                         setTimeout(()=>{
                             b.vx *= 1.5
                             b.vy *= 1.5
-                            aimedshot(that, b)
+                            aimedshot(b)
                         }, t)
                     })
                     s += 10
@@ -2076,6 +2103,7 @@ namespace myGame{
         for(let index = beginAngel; index <= endAngel; index += offset)
         {
             let bullet = <wave>sprites.createProjectileFromSide(img.clone(), 0, 0)
+            bullet.own = p
             reset(bullet)
             bullet.setPosition(x, y)
             bullet.setVelocity(speed*Math.cos(index/57.3), speed*Math.sin(index/57.3))
@@ -2169,6 +2197,15 @@ namespace myGame{
         }
     }
 
+    //% block="延迟 $time 秒后执行"
+    //% time.defl=0.5
+    //%group="技能设置"
+    //% handlerStatement=1
+    //% %time=timePicker ms"
+    export function after(time: number, thenDo: () => void) {
+        setTimeout(thenDo, time*1000)
+    }
+
     //默认技能
     //%block
     //%group="技能设置"
@@ -2208,17 +2245,63 @@ namespace myGame{
 
     export let tempVar = new tempVarDic()
 
+    export class myProjectile{
+        img: Image
+        cb: (projectile: wave)=>void
+        constructor(){
+            this.img = img`
+                .
+            `
+            this.cb = ()=>{}
+        }
+    }
+
+    //let projectiles: {p: myProjectile, name: string}[] = []
+    let projectiles: object
     //%block
-    //%group="弹射物设置"
-    //%blockId=shoot block="%p=variables_get(player) 发射 %img=screen_image_picker 从x $x y $y 朝向角度 $a 速率 $s 与发射点到距离 $d"
-    //%a.defl=0 s.defl=50 x.defl=0 y.defl=0  d.defl=0
+    //%group="自定义弹射物"
+    //%blockId=setProjectiles block="自定义弹射物集合 标记名为%name"
+    //%weight=100
+    //%inlineInputMode=inline
+    export function setProjectiles(name:string, cb:()=>void){
+        cb()
+    }
+
+    //%block
+    //%group="自定义弹射物"
+    //%blockId=setProjectile block="设置弹射物 %img=screen_image_picker 命名为%name"
     //%weight=81
     //%inlineInputMode=inline
+    //%draggableParameters="projectile"
     //% topblock=false
     //% handlerStatement=true
-    export function shoot2(p: Character, img: Image, x: number, y: number, 
-        a: number = 0, s: number = 50, d: number = 0, cb:()=>void){
-        let bullet = <wave>sprites.createProjectileFromSide(img.clone(), 0, 0)
+    export function setProjectile(img: Image, name:string, cb:(projectile: wave)=>void){
+        let bullet = new myProjectile
+        bullet.img = img
+        bullet.cb = cb;
+        //projectiles.push({p:bullet, name:name})
+        (<any>projectiles)[name] = bullet
+    }
+
+    //%block
+    //%group="技能设置"
+    //%blockId=shoot2 block="%p=variables_get(player) 发射弹射物 %name 从x $x y $y ||朝向角度 $a 速率 $s 与发射点到距离 $d"
+    //%a.defl=180 s.defl=50 x.defl=0 y.defl=0  d.defl=0
+    //%weight=81
+    //%inlineInputMode=inline
+    export function shoot2(p: Character, name: string, x: number, y: number, 
+        a: number = 180, s: number = 50, d: number = 0){
+        let bullet: wave
+        let func: (projectile: wave)=>void
+        // for(let x of projectiles){
+        //     if(x.name == name){
+        //         bullet = <wave>sprites.createProjectileFromSide(x.p.img.clone(), 0, 0)
+        //         func = x.p.cb
+        //     }
+        // }
+        bullet = <wave>sprites.createProjectileFromSide((<any>projectiles)[name].img.clone(), 0, 0)
+        func = (<any>projectiles)[name].cb
+        bullet.own = p
         reset(bullet)
         a+=180
         if(p.laspres == 1){
@@ -2232,26 +2315,33 @@ namespace myGame{
             bullet.dir = 1
         }
         bullet.setKind(p.bulletkind)
-
         currentRequest = new Request(bullet)
-
-        cb()
-
+        func(bullet)
         invoke()
     }
 
     //%block
-    //%group="弹射物设置"
-    //%blockId=splitshoot block="(空爆) %p=variables_get(projectile) 偏移x %x y %y射出 %img=screen_image_picker 朝向角度 $a 速率 $s 与发射点到距离 $d"
-    //%a.defl=0 x.defl=0 y.defl=0 s.defl=50 d.defl=0
+    //%group="自定义弹射物"
+    //%blockId=splitshoot block="(空爆) %p=variables_get(projectile) 射出 %name || 偏移x %x y %y朝向角度 $a 速率 $s 与发射点到距离 $d"
+    //%a.defl=180 x.defl=0 y.defl=0 s.defl=50 d.defl=0
     //%weight=78
     //%inlineInputMode=inline
     //% topblock=false
     //% handlerStatement=true
-    export function splitshoot(p: wave, x: number, y: number, img: Image,  
-        a: number = 0, s: number = 50, d: number = 0, cb:()=>void){
+    export function splitshoot(p: wave, name: string, x: number = 0, y: number = 0,  
+        a: number = 180, s: number = 50, d: number = 0){
         if(!p.isDestroyed){
-            let bullet = <wave>sprites.createProjectileFromSide(img.clone(), 0, 0)
+            let bullet: wave
+            let func: (projectile: wave)=>void
+            // for(let x of projectiles){
+            //     if(x.name == name){
+            //         bullet = <wave>sprites.createProjectileFromSide(x.p.img.clone(), 0, 0)
+            //         func = x.p.cb
+            //     }
+            // }
+            bullet = <wave>sprites.createProjectileFromSide((<any>projectiles)[name].img.clone(), 0, 0)
+            func = (<any>projectiles)[name].cb
+            bullet.own = p.own
             reset(bullet)
             a+=180
             if(p.dir == 1){
@@ -2266,13 +2356,13 @@ namespace myGame{
             }
             bullet.setKind(p.kind())
             currentRequest = new Request(bullet)
-            cb()
+            func(bullet)
             invoke()
         }
     }
 
     //%block
-    //%group="弹射物设置"
+    //%group="自定义弹射物"
     //%blockId=tailshoot block="(尾焰) %p=variables_get(projectile) 每隔%t ms 产生尾焰 %img=screen_image_picker 生命周期 %life ms"
     //%t.defl=100 life.defl=500 d.defl=0
     //%weight=77
@@ -2284,6 +2374,7 @@ namespace myGame{
         clock = setInterval(function() {
             if(!p.isDestroyed){
                 let bullet = <wave>sprites.createProjectileFromSide(img.clone(), 0, 0)
+                bullet.own = p.own
                 reset(bullet)
                 bullet.setPosition(p.x, p.y)
                 bullet.lifespan = life
@@ -2309,7 +2400,7 @@ namespace myGame{
 
     //% blockId=overlapAct block="(地雷) %p=variables_get(projectile) 被 %k=overlapKind 触碰后" 
     //% topblock=false
-    //% group="弹射物设置"
+    //% group="自定义弹射物"
     //% handlerStatement=true
     //% k.defl=overlapKind.three
     //% draggableParameters="reporter"
@@ -2329,7 +2420,7 @@ namespace myGame{
 
     //% blockId=bulletInterval block="每隔%t 秒 持续执行 直到 %p=variables_get(projectile) 消亡" 
     //% topblock=false
-    //% group="弹射物设置"
+    //% group="自定义弹射物"
     //% handlerStatement=true
     //% draggableParameters="reporter"
     //% weight=75
@@ -2347,17 +2438,16 @@ namespace myGame{
 
     //% blockId=cbpromisethen block="after %delay s then" 
     //% topblock=false
-    //% group="弹射物设置"
+    //% group="自定义弹射物"
     //% handlerStatement=true
     //% draggableParameters="reporter"
     //% weight=79
-    //% color=12
     export function then(delay:number, cb:(projectile: wave) => void ) {
         currentRequest.pushCb(delay*1000, cb)
     }
 
     //% blockId=cbpromiseinvoke block="invoke" 
-    //% group="弹射物设置"
+    //% group="自定义弹射物"
     function invoke() {
         const _currentRequest = currentRequest
         control.runInParallel(() => {
@@ -2370,7 +2460,7 @@ namespace myGame{
     }
 
     //%block
-    //%group="弹射物设置"
+    //%group="自定义弹射物"
     //%blockId=setBullet block="设置弹射物%b=variables_get(projectile) 属性 %k=bulletP 为 %v"
     //%v.defl=0
     //%weight=78
@@ -2393,7 +2483,7 @@ namespace myGame{
     }
 
     //%block
-    //%group="弹射物设置"
+    //%group="自定义弹射物"
     //%blockId=setBullet2 block="设置弹射物%b=variables_get(projectile) 特殊效果 %k=bulletP2 为 %v"
     //%v.defl=true
     //%weight=78
@@ -2413,19 +2503,19 @@ namespace myGame{
     }
 
     // 自机狙
-    //%group="弹射物设置"
-    //%blockId=aimedshot block="(自机狙) %p=variables_get(player) 的弹射物 %bullet=variables_get(projectile) 转向敌方 ||转向速率 %time"
+    //%group="自定义弹射物"
+    //%blockId=aimedshot block="(自机狙) %bullet=variables_get(projectile) 转向敌方 ||转向速率 %time"
     //%time.defl=573
-    export function aimedshot(p: Character, bullet: wave, time: number = 573){
-        let x: number = p.enemySprite.x
-        let y: number = p.enemySprite.y
-        if(p.bulletkind == bullet.kind()){
-            x = p.enemySprite.x
-            y = p.enemySprite.y
+    export function aimedshot(bullet: wave, time: number = 573){
+        let x: number = bullet.own.enemySprite.x
+        let y: number = bullet.own.enemySprite.y
+        if(bullet.own.bulletkind == bullet.kind()){
+            x = bullet.own.enemySprite.x
+            y = bullet.own.enemySprite.y
         }
         else{
-            x = p.mySprite.x
-            y = p.mySprite.y
+            x = bullet.own.mySprite.x
+            y = bullet.own.mySprite.y
         }
         let angel = Math.atan2(y-bullet.y, x-bullet.x)
         let speed = Math.sqrt(bullet.vx*bullet.vx+bullet.vy*bullet.vy)
@@ -2453,7 +2543,15 @@ namespace myGame{
     }
 
     //%block
-    //%group="弹射物设置"
+    //%group="自定义弹射物"
+    //%blockId=stopcircular block="停止转圈 %p=variables_get(projectile)"
+    export function stopcircular(sprite: Sprite){
+        clearInterval((<wave>sprite).circlock);
+        (<wave>sprite).circlock = -1
+    }
+
+    //%block
+    //%group="自定义弹射物"
     //%blockId=turnTo block="偏移 %p=variables_get(projectile) 转向角度 %angel ||速率%v"
     //%angel.defl=0 v.defl=1146
     //%inlineInputMode=inline
@@ -2477,16 +2575,15 @@ namespace myGame{
     }
 
     //%block
-    //%group="弹射物设置"
+    //%group="自定义弹射物"
     //%blockId=circular block="转圈 %p=variables_get(projectile) ||半径%r 半径递增速率%v %t 时针 偏移速率%ov 偏移角度%oa"
-    //%r.defl=30 v=0 t.defl=clockwise.p
+    //%r.defl=30 v=0 t.defl=clockwise.p ov.defl=0 oa.defl=180
     //%inlineInputMode=inline
     export function circular(sprite: Sprite, r: number = 30, v: number = 0, 
-    t: clockwise = clockwise.p, ov: number = 0, oa: number = 0){
+    t: clockwise = clockwise.p, ov: number = 0, oa: number = 180){
         let speed = Math.max(Math.sqrt(sprite.vx*sprite.vx+sprite.vy*sprite.vy), 10)
         let angel0 = Math.atan2(sprite.vy, sprite.vx)
         //r = Math.max(r, 0)
-        let clock: number
         oa = (oa+180)/57.3
         let vx = ov*Math.cos(oa)
         let vy = ov*Math.sin(oa)
@@ -2497,10 +2594,11 @@ namespace myGame{
         if((<wave>sprite).dir == 1){
             vx = -vx
         }
-        let dir = (<wave>sprite).dir
-        clock = setInterval(()=>{
+        let dir = (<wave>sprite).dir;
+        (<wave>sprite).circlock = setInterval(()=>{
             if((<wave>sprite).isDestroyed){
-                clearInterval(clock)
+                clearInterval((<wave>sprite).circlock);
+                (<wave>sprite).circlock = -1
             }
             else if(dir != (<wave>sprite).dir){
                 r = -r
@@ -2515,7 +2613,7 @@ namespace myGame{
     }
 
     //%block
-    //%group="弹射物设置"
+    //%group="自定义弹射物"
     //%blockId=movetoxy block="移动 %sprite=variables_get(projectile) 在%time 秒内接近 位置x %desx y %desy"
     //%inlineInputMode=inline
     export function movetoxy (sprite: Sprite, time: number, desx: number, desy: number) {
@@ -2524,7 +2622,7 @@ namespace myGame{
     }
 
     //%block
-    //%group="弹射物设置"
+    //%group="自定义弹射物"
     //%blockId=movetox block="移动 %sprite=variables_get(projectile) 在%time 秒内接近 位置x %desx"
     //%inlineInputMode=inline
     export function movetox (sprite: Sprite, time: number, desx: number) {
@@ -2539,7 +2637,7 @@ namespace myGame{
     }
 
     //%block
-    //%group="弹射物设置"
+    //%group="自定义弹射物"
     //%blockId=movetoy block="移动 %sprite=variables_get(projectile) 在%time 秒内接近 位置y %desy"
     //%inlineInputMode=inline
     export function movetoy (sprite: Sprite, time: number, desy: number) {
@@ -2554,7 +2652,7 @@ namespace myGame{
     }
 
     //%block
-    //%group="弹射物设置"
+    //%group="自定义弹射物"
     //%blockId=movexy block="移动 %sprite=variables_get(projectile) 在%time 秒内移动 x %dx y %dy"
     //%inlineInputMode=inline
     export function movexy (sprite: Sprite, time: number, dx: number, dy: number) {
@@ -2567,12 +2665,12 @@ namespace myGame{
     }
 
     //%block
-    //%group="弹射物设置"
+    //%group="自定义弹射物"
     //%blockId=accelerateToV block="加速 %sprite=variables_get(projectile) 在%time 秒内加速到 vx %dx vy %dy"
     //%inlineInputMode=inline
     export function acceToV (sprite: Sprite, time: number, vx: number, vy: number) {
-        vx = (sprite.vx^vx)<0 ? -vx : vx
-        vy = (sprite.vy^vy)<0 ? -vy : vy
+        vx = ((sprite.vx+1)^vx)<0 ? -vx : vx
+        vy = ((sprite.vy+1)^vy)<0 ? -vy : vy
         let ay = sprite.ay
         let clock = setInterval(()=>{
             sprite.ax = 4*(vx-sprite.vx)/time
@@ -2782,10 +2880,10 @@ namespace myGame{
         p.leftDOWN ^= p.rightDOWN
     }
 
-//=================== 人物参数 ===================
+//=================== 自定义人物 ===================
 
     //%block
-    //%group="人物参数"
+    //%group="自定义人物"
     //%blockId=setPlayerStImage block="设置$p=variables_get(player) %k=stimgKind 姿势 $img=screen_image_picker"
     //%inlineInputMode=inline
     export function setStImage(p: Character, k: stimgKind, img: Image){
@@ -2806,7 +2904,7 @@ namespace myGame{
         }
     }
     //%block
-    //%group="人物参数"
+    //%group="自定义人物"
     //%blockId=setPlayerAtkImage block="设置$p=variables_get(player) %k=atkimgKind 姿势 $img=screen_image_picker 攻击部位 %atk=screen_image_picker"
     //%inlineInputMode=inline
     export function setAtkImage(p: Character, k: atkimgKind, img: Image, atk: Image){
@@ -2832,7 +2930,7 @@ namespace myGame{
     }
 
     //%block
-    //%group="人物参数"
+    //%group="自定义人物"
     //%blockId=setPlayerWalkImage block="设置$p=variables_get(player) %k=aniKind $img=animation_editor ||走路帧间隔%t ms"
     //%inlineInputMode=inline
     //%t.defl=200
@@ -2857,7 +2955,7 @@ namespace myGame{
     }
 
     //%block
-    //%group="人物参数"
+    //%group="自定义人物"
     //%blockId=setAbility block="设置%p=variables_get(player) 属性 %k=abilityKind 为 %v"
     //%v.defl=0
     export function setAbility(p: Character, k: abilityKind, v: number){
