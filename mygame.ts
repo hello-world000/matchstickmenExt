@@ -2256,7 +2256,8 @@ namespace myGame{
         }
     }
 
-    let projectiles: {p: myProjectile, name: string}[] = []
+    //let projectiles: {p: myProjectile, name: string}[] = []
+    let projectiles: object = null
 
     //%block
     //%group="自定义弹射物"
@@ -2278,8 +2279,9 @@ namespace myGame{
     export function setProjectile(img: Image, name:string, cb:(projectile: wave)=>void){
         let bullet = new myProjectile
         bullet.img = img
-        bullet.cb = cb
-        projectiles.push({p:bullet, name:name})
+        bullet.cb = cb;
+        //projectiles.push({p:bullet, name:name})
+        (<any>projectiles)[name] = bullet
     }
 
     //%block
@@ -2292,12 +2294,14 @@ namespace myGame{
         a: number = 180, s: number = 50, d: number = 0){
         let bullet: wave
         let func: (projectile: wave)=>void
-        for(let x of projectiles){
-            if(x.name == name){
-                bullet = <wave>sprites.createProjectileFromSide(x.p.img.clone(), 0, 0)
-                func = x.p.cb
-            }
-        }
+        // for(let x of projectiles){
+        //     if(x.name == name){
+        //         bullet = <wave>sprites.createProjectileFromSide(x.p.img.clone(), 0, 0)
+        //         func = x.p.cb
+        //     }
+        // }
+        bullet = <wave>sprites.createProjectileFromSide((<any>projectiles)[name].img.clone(), 0, 0)
+        func = (<any>projectiles)[name].cb
         bullet.own = p
         reset(bullet)
         a+=180
@@ -2330,12 +2334,14 @@ namespace myGame{
         if(!p.isDestroyed){
             let bullet: wave
             let func: (projectile: wave)=>void
-            for(let x of projectiles){
-                if(x.name == name){
-                    bullet = <wave>sprites.createProjectileFromSide(x.p.img.clone(), 0, 0)
-                    func = x.p.cb
-                }
-            }
+            // for(let x of projectiles){
+            //     if(x.name == name){
+            //         bullet = <wave>sprites.createProjectileFromSide(x.p.img.clone(), 0, 0)
+            //         func = x.p.cb
+            //     }
+            // }
+            bullet = <wave>sprites.createProjectileFromSide((<any>projectiles)[name].img.clone(), 0, 0)
+            func = (<any>projectiles)[name].cb
             bullet.own = p.own
             reset(bullet)
             a+=180
