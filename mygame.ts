@@ -2770,6 +2770,7 @@ namespace myGame{
     // 反击，防御状态被攻击才能发出
     //%group="技能设置"
     //%blockId=counterAttack block="(反击) %p=variables_get(player) 尝试执行 消耗mp %mp"
+    //%mp.defl=0
     //% topblock=false
     //% handlerStatement=true
     export function counterAttack(p: Character, mp: number = 0, func: ()=>void){
