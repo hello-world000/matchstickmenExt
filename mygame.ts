@@ -85,7 +85,9 @@ namespace myGame{
         //% block="击飞vx"
         xspeed,
         //% block="击飞vy"
-        yspeed
+        yspeed,
+        //% block="碰撞存活优先级"
+        perishTogether
     }
 
     export enum bulletP2{
@@ -95,8 +97,6 @@ namespace myGame{
         rebound,
         //% block="不受反射"
         indeflectible,
-        //% block="碰撞消亡"
-        perishTogether,
         //% block="被攻击消亡"
         attachPlayer
     }
@@ -156,13 +156,13 @@ namespace myGame{
         three
     }
 
-    //重叠消亡 k(collision): 0=>未碰撞/超时重置, 1=>子弹碰子弹, 2=>子弹碰人
-    function perish(sprite: wave, k: number){
+    //重叠消亡 k(collision): 0=>未碰撞/超时重置, 1=>子弹碰子弹, 2=>子弹碰人; v: 碰撞存活优先级
+    function perish(sprite: wave, k: number, v: number){
         sprite.collision = k
         if(sprite.overlapKind == 3 || sprite.collision == sprite.overlapKind){
             sprite.overlapAct()
         }
-        if(sprite.perishTogether == true){
+        if(sprite.perishTogether != -1 && sprite.perishTogether <= v){
             sprite.destroy()
         }
         else{
@@ -196,8 +196,8 @@ namespace myGame{
             (<wave>otherSprite).dir = (<wave>sprite).dir==1 ? 2 : 1
         }
         else{
-            perish(<wave>sprite, 1);
-            perish(<wave>otherSprite, 1)
+            perish(<wave>sprite, 1, (<wave>otherSprite).perishTogether);
+            perish(<wave>otherSprite, 1, (<wave>sprite).perishTogether)
         }
     })
 
@@ -325,7 +325,7 @@ namespace myGame{
         rebound = false //反射敌方子弹
         indeflectible = false //不受反射
         isDestroyed = false //已消亡
-        perishTogether = true //碰撞后消亡
+        perishTogether = 0 //碰撞存活优先级. -1~99, -1时碰撞双方都不会销毁
         collision = 1 //上次碰撞类型：0=>未碰撞/超时重制, 1=>子弹碰子弹, 2=>子弹碰人
         interval = -1 //碰撞后不消亡使用的时钟
         circlock = -1 //转圈时钟
@@ -334,11 +334,13 @@ namespace myGame{
         dir = 2 //朝向 1->左，2->右
         own: Character //归属
         attachOwner = false //所有者被攻击时自动销毁
+        blastAnim: Image[] = [] //爆炸(销毁)动画
+        animInterval = 100 //爆炸动画interval
     }
 
     function reset(own: Character, bullet: wave, damage = 1, hitrec = 100, hurted = 1, 
     breakdef = false, xspeed = 50, yspeed = 20, rebound = false, 
-    indeflectible = false, isDestroyed = false, perishTogether = true){
+    indeflectible = false, isDestroyed = false, perishTogether = 0){
         bullet.own = own
         bullet.damage = damage //伤害
         bullet.hitrec = hitrec //被攻击方硬直时间
@@ -349,14 +351,16 @@ namespace myGame{
         bullet.rebound = rebound //反射敌方子弹
         bullet.indeflectible = indeflectible //不受反射
         bullet.isDestroyed = isDestroyed //已消亡
-        bullet.perishTogether = perishTogether //碰撞后消亡
+        bullet.perishTogether = perishTogether //碰撞存活优先级
         bullet.collision = 0 //上次碰撞类型：0=>未碰撞/超时重制, 1=>子弹碰子弹, 2=>子弹碰人
         bullet.interval = -1 //碰撞后不消亡使用的时钟
         bullet.circlock = -1
         bullet.overlapAct = ()=>{} //碰撞后的行为
         bullet.overlapKind = 3 //引发overlapAct的碰撞类型：1=>子弹碰子弹, 2=>子弹碰人, 3=>任意
         bullet.dir = 2 //朝向 1->左，2->右
-        bullet.attachOwner = false
+        bullet.attachOwner = false //所有者被攻击时自动销毁
+        bullet.blastAnim = [] //爆炸(销毁)动画
+        bullet.animInterval = 100 //爆炸动画interval
     }
 
     //%block
@@ -398,6 +402,12 @@ namespace myGame{
     sprites.onDestroyed(SpriteKind.p1atk, function(sprite: Sprite) {
         let b = <wave>sprite
         b.isDestroyed = true
+        if(b.blastAnim != undefined && b.blastAnim.length > 0){
+            let tsprite = sprites.create(b.blastAnim[0])
+            tsprite.setPosition(sprite.x, sprite.y)
+            animation.runImageAnimation(tsprite, b.blastAnim, b.animInterval)
+            tsprite.lifespan = b.blastAnim.length*b.animInterval
+        }
         if(b.attachOwner){
             for(let i = 0; i < b.own.attachBullet.length; ++i){
                 if(b.own.attachBullet[i] == b){
@@ -410,6 +420,12 @@ namespace myGame{
     sprites.onDestroyed(SpriteKind.p2atk, function(sprite: Sprite) {
         let b = <wave>sprite
         b.isDestroyed = true
+        if(b.blastAnim != undefined && b.blastAnim.length > 0){
+            let tsprite = sprites.create(b.blastAnim[0])
+            tsprite.setPosition(sprite.x, sprite.y)
+            animation.runImageAnimation(tsprite, b.blastAnim, b.animInterval)
+            tsprite.lifespan = b.blastAnim.length*b.animInterval
+        }
         if(b.attachOwner){
             for(let i = 0; i < b.own.attachBullet.length; ++i){
                 if(b.own.attachBullet[i] == b){
@@ -426,19 +442,30 @@ export class projectileAnimation{
     next: projectileAnimation
     interval: number
     lifespan: number
-    constructor(anim: Image[], interval: number = 100){
+    follow: boolean
+    loop: boolean
+    constructor(anim: Image[], interval: number = 100, follow = false, loop = false){
         this.anim = anim
         this.interval = interval
         this.lifespan = anim.length*interval
+        this.follow = follow
+        this.loop = loop
         this.next = null
     }
 }
 
-export function setAnimation(anim: Image[]){
-    
+export let animations: { [key: string]: projectileAnimation; } = {}
+
+export function setAnimation(anim: Image[], name: string, 
+    interval: number = 100, follow: boolean = false){
+    if(projectiles[name] != undefined){
+        console.log("定义动画时发生动画命名冲突："+name)
+    }
+    let animation = new projectileAnimation(anim, interval, follow)
+    animations[name] = animation
 }
 
-export function runAnimation(){
+export function runAnimation(name: string){
 
 }
 
@@ -962,7 +989,7 @@ export function runAnimation(){
                 return
             }
             if(this.immu == 1){
-                perish(<wave>sprite, 0)
+                perish(<wave>sprite, 0, 0)
                 return
             }
             if((<wave>sprite).damage == 0){
@@ -1041,7 +1068,7 @@ export function runAnimation(){
                     b.destroy()
                 }
             }
-            perish(<wave>sprite, 2)
+            perish(<wave>sprite, 2, 0)
             if (this.statusbar.value == 0) {
                 if(this.player == controller.player1){
                     game.splash("player2 win!")
@@ -2490,7 +2517,7 @@ export function runAnimation(){
                 bullet.lifespan = life
                 bullet.damage = 0
                 bullet.indeflectible = true
-                bullet.perishTogether = false
+                bullet.perishTogether = -1
                 bullet.hurted = 0
                 bullet.hitrec = 0
                 if(p.dir == 1){
@@ -2548,6 +2575,17 @@ export function runAnimation(){
 
     //%block
     //%group="自定义弹射物"
+    //%blockId=setBlastAnim block="设定 %sprite=variables_get(projectile) 爆炸动画 $anim=animation_editor ||帧间间隔 %interval ms"
+    //%inlineInputMode=inline
+    //%interval.defl=100
+    //%weight=74
+    export function setBlastAnim(b: wave, anim: Image[], interval: number = 100){
+        b.blastAnim = anim
+        b.animInterval = interval
+    }
+
+    //%block
+    //%group="自定义弹射物"
     //%blockId=setBullet block="设置弹射物%b=variables_get(projectile) 属性 %k=bulletP 为 %v"
     //%v.defl=0
     //%weight=78
@@ -2567,6 +2605,9 @@ export function runAnimation(){
         else if(k == bulletP.yspeed){
             b.yspeed = v
         }
+        else if(k == bulletP.perishTogether){
+            b.perishTogether = Math.min(v, 99)
+        }
     }
 
     //%block
@@ -2583,9 +2624,6 @@ export function runAnimation(){
         }
         else if(k == bulletP2.indeflectible){
             b.indeflectible = v
-        }
-        else if(k == bulletP2.perishTogether){
-            b.perishTogether = v
         }
         else if(k == bulletP2.attachPlayer){
             b.attachOwner = v
@@ -2768,11 +2806,12 @@ export function runAnimation(){
 
     //%block
     //%group="自定义弹射物"
-    //%blockId=accelerateToV block="加速 %sprite=variables_get(projectile) 在%time 秒内加速到 vx %dx vy %dy"
+    //%blockId=accelerateToV block="加速 %sprite=variables_get(projectile) 在%time 秒内加速 vx* %dx vy* %dy"
     //%inlineInputMode=inline
     export function acceToV (sprite: Sprite, time: number, vx: number, vy: number) {
-        vx = ((sprite.vx+1)^vx)<0 ? -vx : vx
-        vy = ((sprite.vy+1)^vy)<0 ? -vy : vy
+        vx = sprite.vx * vx
+        vy = sprite.vy * vy
+        let ax = sprite.ax
         let ay = sprite.ay
         let clock = setInterval(()=>{
             sprite.ax = 4*(vx-sprite.vx)/time
@@ -2781,7 +2820,7 @@ export function runAnimation(){
         setTimeout(()=>{
             clearInterval(clock)
             sprite.setVelocity(vx, vy)
-            sprite.ax = 0
+            sprite.ax = ax
             sprite.ay = ay
         }, time*1000)
     }
