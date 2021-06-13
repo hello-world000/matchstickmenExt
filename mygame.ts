@@ -2028,7 +2028,7 @@ namespace myGame{
             }
             this.mySprite.setFlag(SpriteFlag.Ghost, true)
             this.mySprite.setFlag(SpriteFlag.Invisible, true);
-            (<wave>this.mySprite).own = this
+            (<wave>(this.mySprite)).own = this
             this.statusbar = statusbars.create(50, 4, StatusBarKind.Health)
             this.statusbar.positionDirection(CollisionDirection.Top)
             this.statusbar.setOffsetPadding(-66666, 0)
@@ -2853,7 +2853,7 @@ namespace myGame{
         } else {
             p.mySprite.vx = vx
         }
-        p.mySprite.vy = vy
+        p.mySprite.vy = -vy
         p.toground(()=>{
             p.jump = 0
             p.skill = 0
