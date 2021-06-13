@@ -1183,7 +1183,7 @@ namespace myGame{
         }
         // 反击，防御状态被攻击才能发出
         counterAttack(mp: number, atk: ()=>void){
-            if(this.hurted == -1){
+            if(this.hurted == -1 && mp <= this.mpbar.value){
                 this.hurted = 0
                 this.skill = 0
                 this.mpbar.value -= mp
