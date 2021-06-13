@@ -2844,7 +2844,7 @@ namespace myGame{
     //%blockId=jump block="起跳 %p=variables_get(player) ||竖直速度%vy 水平速度%vx"
     //%vy.defl=100 vx.defl=0
     //%weight=98
-    export function jump(p: Character, vy: number, vx: number){
+    export function jump(p: Character, vy: number = 100, vx: number = 0){
         // p.updown();
         p.jump = 1
         p.stop()
