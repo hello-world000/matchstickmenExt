@@ -313,7 +313,7 @@ namespace myGame{
         })
     }
 
-//=================== 自定义技能效果 ===================
+//=================== 自定义弹射物 ===================
 
     export class wave extends Sprite{
         damage = 1 //伤害
@@ -420,6 +420,29 @@ namespace myGame{
         }
     })
 
+// //=================== 动画 ===================
+// export class projectileAnimation{
+//     anim: Image[]
+//     next: projectileAnimation
+//     interval: number
+//     lifespan: number
+//     constructor(anim: Image[], interval: number = 100){
+//         this.anim = anim
+//         this.interval = interval
+//         this.lifespan = anim.length*interval
+//         this.next = null
+//     }
+// }
+
+// export function setAnimation(anim: Image[]){
+    
+// }
+
+// export function funAnimation(){
+
+// }
+
+//=================== 人物 ===================
     export class Character{
         laspres = -1 //方向
         rushspeed = 80 //奔跑速度
@@ -2163,6 +2186,7 @@ namespace myGame{
     }
 
 //=================== 技能设置 ===================
+    //------------ 临时变量 ------------
     export class tempVarDic{
         map: { [key: string]: number; }
         map2: {[key: string]: wave; }
@@ -2211,6 +2235,9 @@ namespace myGame{
     export function updateVar(val: number, tempVar: tempVarDic, key: string, ){
         tempVar.map[key] += val
     }
+
+    export let tempVar = new tempVarDic()
+    //------------ 临时变量end ------------
 
     //%block
     //%group="技能设置"
@@ -2261,15 +2288,6 @@ namespace myGame{
         }
     }
 
-    //% block="延迟 $time 秒后执行"
-    //% time.defl=0.5
-    //%group="技能设置"
-    //% handlerStatement=1
-    //% %time=timePicker ms"
-    export function after(time: number, thenDo: () => void) {
-        setTimeout(thenDo, time*1000)
-    }
-
     //默认技能
     //%block
     //%group="技能设置"
@@ -2279,6 +2297,7 @@ namespace myGame{
         player.defaultskill()
     }
 
+    //------------ promise ------------
     interface TimeAction {
         delay:number,
         callback: ((sprite: wave) =>void)
@@ -2305,9 +2324,32 @@ namespace myGame{
         }
     }
 
-    let currentRequest:Request = null;
+    //% blockId=cbpromisethen block="after %delay s then" 
+    //% topblock=false
+    //% group="自定义弹射物"
+    //% handlerStatement=true
+    //% draggableParameters="reporter"
+    //% weight=79
+    export function then(delay:number, cb:(projectile: wave) => void ) {
+        currentRequest.pushCb(delay*1000, cb)
+    }
 
-    export let tempVar = new tempVarDic()
+    //% blockId=cbpromiseinvoke block="invoke" 
+    //% group="自定义弹射物"
+    function invoke() {
+        const _currentRequest = currentRequest
+        control.runInParallel(() => {
+            while (!_currentRequest.isEmpty()) {
+                let timeAction = _currentRequest.pop()
+                pause(timeAction.delay)
+                timeAction.callback(_currentRequest.sprite)
+            }
+        })
+    }
+
+    let currentRequest:Request = null;
+    
+//=================== 弹射物 ===================
 
     export class myProjectile{
         img: Image
@@ -2320,7 +2362,6 @@ namespace myGame{
         }
     }
 
-    //let projectiles: {p: myProjectile, name: string}[] = []
     let projectiles: { [key: string]: myProjectile; } = {}
 
     //%block
@@ -2503,29 +2544,6 @@ namespace myGame{
                 func()
             }
         }, t*1000)
-    }
-
-    //% blockId=cbpromisethen block="after %delay s then" 
-    //% topblock=false
-    //% group="自定义弹射物"
-    //% handlerStatement=true
-    //% draggableParameters="reporter"
-    //% weight=79
-    export function then(delay:number, cb:(projectile: wave) => void ) {
-        currentRequest.pushCb(delay*1000, cb)
-    }
-
-    //% blockId=cbpromiseinvoke block="invoke" 
-    //% group="自定义弹射物"
-    function invoke() {
-        const _currentRequest = currentRequest
-        control.runInParallel(() => {
-            while (!_currentRequest.isEmpty()) {
-                let timeAction = _currentRequest.pop()
-                pause(timeAction.delay)
-                timeAction.callback(_currentRequest.sprite)
-            }
-        })
     }
 
     //%block
@@ -2789,14 +2807,6 @@ namespace myGame{
         p.autoAttack(time*1000, mp, func)
     }
 
-    // //%block
-    // //% group="技能设置"
-    // //%blockId=dirRight2 block="%p=variables_get(projectile) 朝向右"
-    // //%weight=10
-    // export function dirRight2(p: wave): boolean{
-    //     return p.dir == 2
-    // }
-
 //=================== 人物动作 ===================
     //%block
     //%group="人物动作"
@@ -2964,6 +2974,15 @@ namespace myGame{
         p.leftDOWN ^= p.rightDOWN
         p.rightDOWN ^= p.leftDOWN
         p.leftDOWN ^= p.rightDOWN
+    }
+
+    //% block="延迟 $time 秒后执行"
+    //% time.defl=0.5
+    //%group="人物动作"
+    //% handlerStatement=1
+    //% %time=timePicker ms"
+    export function after(time: number, thenDo: () => void) {
+        setTimeout(thenDo, time*1000)
     }
 
 //=================== 自定义人物 ===================
