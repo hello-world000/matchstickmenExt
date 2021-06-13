@@ -2027,7 +2027,8 @@ namespace myGame{
                 this.laspres = 1
             }
             this.mySprite.setFlag(SpriteFlag.Ghost, true)
-            this.mySprite.setFlag(SpriteFlag.Invisible, true)
+            this.mySprite.setFlag(SpriteFlag.Invisible, true);
+            (<wave>this.mySprite).own = this
             this.statusbar = statusbars.create(50, 4, StatusBarKind.Health)
             this.statusbar.positionDirection(CollisionDirection.Top)
             this.statusbar.setOffsetPadding(-66666, 0)
