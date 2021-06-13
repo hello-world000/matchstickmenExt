@@ -420,27 +420,27 @@ namespace myGame{
         }
     })
 
-// //=================== 动画 ===================
-// export class projectileAnimation{
-//     anim: Image[]
-//     next: projectileAnimation
-//     interval: number
-//     lifespan: number
-//     constructor(anim: Image[], interval: number = 100){
-//         this.anim = anim
-//         this.interval = interval
-//         this.lifespan = anim.length*interval
-//         this.next = null
-//     }
-// }
+//=================== 动画 ===================
+export class projectileAnimation{
+    anim: Image[]
+    next: projectileAnimation
+    interval: number
+    lifespan: number
+    constructor(anim: Image[], interval: number = 100){
+        this.anim = anim
+        this.interval = interval
+        this.lifespan = anim.length*interval
+        this.next = null
+    }
+}
 
-// export function setAnimation(anim: Image[]){
+export function setAnimation(anim: Image[]){
     
-// }
+}
 
-// export function funAnimation(){
+export function runAnimation(){
 
-// }
+}
 
 //=================== 人物 ===================
     export class Character{
