@@ -177,7 +177,9 @@ namespace myGame{
         //% block="精灵"
         M,
         //% block="敌方精灵"
-        E
+        E,
+        //% block="弹射物"
+        P
     }
 
     //重叠消亡 k(collision): 0=>未碰撞/超时重置, 1=>子弹碰子弹, 2=>子弹碰人; v: 碰撞存活优先级
@@ -523,20 +525,6 @@ namespace myGame{
     //%block
     //%group="参数"
     //%blockNamespace=弹射物 
-    //%blockId=blankprojectile block="%p=variables_get(player) 的弹射物"
-    //%weight=99
-    export function blankprojectile(p: Character): wave{
-        let ret = <wave>sprites.createProjectileFromSprite(img`
-            .
-        `, p.mySprite, p.mySprite.vx, 0)
-        reset(p, ret)
-        ret.lifespan = 0
-        return ret
-    }
-
-    //%block
-    //%group="参数"
-    //%blockNamespace=弹射物 
     //%blockId=spriteToWave block="将精灵 %b=variables_get(sprite) 转化为弹射物"
     //%weight=100
     export function spriteToWave(b: Sprite): wave{
@@ -690,18 +678,34 @@ function _runAnimation(name: string, loop: boolean = false){
 
 //=================== 人物 ===================
     export class Character{
-        laspres = -1 //方向
+        laspres = -1 //方向. 1:左，2:右
         rushspeed = 80 //奔跑速度
         jumpspeed = 100 //起跳速度
         walkspeed = 40 //行走速度
-        rightDOWN = 0 //右走中
+        /*
+                                |->timeout(0)
+         0 -> rightdown(1) -> rightup(2) -> rightdown(3.rush) -> rightup(5.rush)
+                |->timeout(-1) -> rightup(0)
+         */
+        rightDOWN = 0 //右走中.0:松开 -1:按下、按住 1:按下 2:按一下松开 3:连按两下(按住) 5:连按两下松开
         leftDOWN = 0 //左走中
         defence = 0 //防御中
+        /**
+         * skill = 0: 常态
+         * skill = 1: ⬇️.defence状态
+         * skill = 2: ↑.jump状态
+         * skill = 3: ⬇️+↑.特殊技能
+         * skill = 4: ➡️+➡️.rush状态
+         * skill = 6: ➡️+➡️+↑.rush+jump状态
+         * skill = 8: ➡️.行走状态
+         * skill = 9: ⬇️+➡️.特殊技能
+         * skill = 10: ⬇️+➡️（按下松开）.特殊技能
+         */
         skill = 0 //技能状态
         damageA = 2 //A伤害
-        hitrecA = 200
+        hitrecA = 200 //A造成的硬直
         damageB = 4 //B伤害
-        hitrecB = 300
+        hitrecB = 300 //B造成的硬直
         defencelas = 100 //按一下防御的持续时间
         defact = 300 //反击的最长反应时间
         def = 0.5 //防御减伤系数
@@ -712,7 +716,7 @@ function _runAnimation(name: string, loop: boolean = false){
         jump = 0 //跳跃中
         combo = 0 //连击中
         attack = 0 //攻击中
-        hurted = 0 //受攻击硬直中 -1:防御状态下受伤，0:无受伤，1:受伤，2:受伤瞬间
+        hurted = 0 //受攻击硬直中 -1:防御状态下受伤(可反击)，0:无受伤，1:受伤，2:受伤瞬间
         hitoverST = 0 //击飞中
         immu = 0 //无敌中
         enemySprite: Sprite = null
@@ -723,6 +727,7 @@ function _runAnimation(name: string, loop: boolean = false){
         comboclock = -1 //连击倒计时
         defclock = -1 //反击倒计时
         def2clock = -1 //防御技能计时
+        immuclock = -1 //无敌技能计时
         hurtclock = -1 //硬直恢复倒计时
         attackclock = -1 //自动攻击
         hitclock = -1 //被连续击打的最长间隔计时
@@ -2431,6 +2436,9 @@ function _runAnimation(name: string, loop: boolean = false){
     //%blockId=getTempVar block="获取临时变量 %t=variables_get(tempVar) %key"
     //%weight=89
     export function getVal(tempVar: tempVarDic, key: string){
+        if(tempVar.map[key] == undefined){
+            console.log("临时变量 '"+key+"' 未定义！")
+        }
         return tempVar.map[key]
     }
 
@@ -2733,7 +2741,7 @@ function _runAnimation(name: string, loop: boolean = false){
     // 自机狙
     //%group="行为/轨迹"
     //%blockNamespace=弹射物 
-    //%blockId=aimedshot block="(自机狙) %bullet=variables_get(projectile) 转向敌方 ||转向速率 %time"
+    //%blockId=aimedshot block="(自机狙) %bullet=variables_get(projectile) 转向敌方精灵 ||转向速率 %time"
     //%time.defl=573
     export function aimedshot(bullet: wave, time: number = 573){
         let x: number = bullet.own.enemySprite.x
@@ -3078,6 +3086,18 @@ function _runAnimation(name: string, loop: boolean = false){
     //%block
     //%blockNamespace=技能 
     //%group="动作"
+    //%blockId=immune block="无敌 %p=variables_get(player) %t 秒"
+    //%t.defl=1 
+    //%weighr=97
+    export function immune(p: Character, t: number){
+        p.immu = 1
+        clearTimeout(p.immuclock)
+        p.immuclock = setTimeout(()=>{p.immuclock = -1; p.immu = 0; }, t*1000)
+    }
+
+    //%block
+    //%blockNamespace=技能 
+    //%group="动作"
     //%blockId=newPosture block="近身攻击 %p=variables_get(player) 摆出姿势 %img=screen_image_picker %t 秒 攻击部位(projectile) %atk=screen_image_picker "
     //%inlineInputMode=inline
     //%t.defl=0.3
@@ -3282,8 +3302,16 @@ function _runAnimation(name: string, loop: boolean = false){
         if(k == ME.M){
             return p.mySprite
         }
-        else {
+        else if(k == ME.E){
             return p.enemySprite
+        }
+        else { //(k == ME.P)
+            let ret = <wave>sprites.createProjectileFromSprite(img`
+                .
+            `, p.mySprite, p.mySprite.vx, 0)
+            reset(p, ret)
+            ret.lifespan = 0
+            return ret
         }
     }
 

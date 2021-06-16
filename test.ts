@@ -3242,7 +3242,7 @@ myGame.skillSet("磁暴步兵", function (player2) {
                 myGame.add(tempVar, "d", -15)
             }
             myGame.atkAction(player4, myGame.atkKind.BasicAtkA, 4)
-            multiRandomShot(myGame.blankprojectile(player4), 75, 105, 50, 105, 12, 0.3, myGame.getVal(tempVar, "d"), 0, 随机弹)
+            multiRandomShot(myGame.getSprite(player4, myGame.ME.P), 75, 105, 50, 105, 12, 0.3, myGame.getVal(tempVar, "d"), 0, 随机弹)
         })
     })
     myGame.setSkill(player2, myGame.SkillKind.A9, 5, function (tempVar, player3) {
