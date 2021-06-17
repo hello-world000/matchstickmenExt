@@ -3137,9 +3137,22 @@ function _runAnimation(name: string, loop: boolean = false){
         }
         p.mySprite.vx = -p.mySprite.vx
         p.mySprite.image.flipX()
-        p.leftDOWN ^= p.rightDOWN
-        p.rightDOWN ^= p.leftDOWN
-        p.leftDOWN ^= p.rightDOWN
+        if(Math.abs(p.leftDOWN) == 1 || Math.abs(p.rightDOWN) == 1){
+            clearTimeout(p.comboclock)
+            p.comboclock = -1
+            p.leftDOWN = p.rightDOWN = 0
+        }
+        else{
+            p.leftDOWN ^= p.rightDOWN
+            p.rightDOWN ^= p.leftDOWN
+            p.leftDOWN ^= p.rightDOWN
+            if(p.leftDOWN == 3){
+                p.leftDOWN = 5
+            }
+            else if(p.rightDOWN == 3){
+                p.rightDOWN = 5
+            }
+        }
     }
 
     //% block="延迟 $time 秒后执行"

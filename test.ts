@@ -7,6 +7,17 @@ function multiRandomShot (projectile2: Sprite, amn: number, amx: number, smn: nu
         multiRandomShot(projectile2, amn, amx, smn, smx, n - 1, delay, xoffset, yoffset, name)
     })
 }
+function twinkle (sprite: Sprite, visTime: number, unvisTime: number, n: number) {
+    myGame.after(visTime, function () {
+        sprite.setFlag(SpriteFlag.Invisible, true)
+        myGame.after(unvisTime, function () {
+            sprite.setFlag(SpriteFlag.Invisible, false)
+            if (n > 1) {
+                twinkle(sprite, visTime, unvisTime, n - 1)
+            }
+        })
+    })
+}
 myGame.basicSet(img`
     ........................
     ........................
@@ -2609,12 +2620,12 @@ let 水平雷电球 = ""
 let 蓄力雷电 = ""
 let 随机弹 = ""
 let 竖直雷电球 = ""
-let projectile: myGame.wave = null
 let 替身巨龙 = ""
 let 火球 = ""
 let 尾焰 = ""
 let 电球爆炸 = ""
 let 火球爆炸 = ""
+let projectile: myGame.wave = null
 playGame.characterMenus()
 myGame.defAnimation(function () {
     火球爆炸 = "火球爆炸"
@@ -4724,6 +4735,22 @@ myGame.skillSet("低级死灵", function (player3) {
         myGame.after(0.6, function () {
             multishot(myGame.getVal2(tempVar, "projectile"), 190, 3, 0.2, -10, "幽灵粒子")
         })
+    })
+    myGame.setSkill(player3, myGame.SkillKind.B9, 10, function (tempVar, player2) {
+        if (myGame.getSprite(player2, myGame.ME.M).x < myGame.getSprite(player2, myGame.ME.E).x) {
+            myGame.getSprite(player2, myGame.ME.M).setPosition(myGame.getSprite(player2, myGame.ME.E).x + 10, myGame.getSprite(player2, myGame.ME.E).y)
+            if (myGame.dirRight(player2)) {
+                myGame.turn(player2)
+            }
+        } else {
+            myGame.getSprite(player2, myGame.ME.M).setPosition(myGame.getSprite(player2, myGame.ME.E).x - 10, myGame.getSprite(player2, myGame.ME.E).y)
+            if (!(myGame.dirRight(player2))) {
+                myGame.turn(player2)
+            }
+        }
+        myGame.atkAction(player2, myGame.atkKind.RushAtkA, 0.7)
+        myGame.immune(player2, 1)
+        twinkle(myGame.getSprite(player2, myGame.ME.M), 0.2, 0.2, 5)
     })
 })
 myGame.skillSet("大蝙蝠", function (player3) {
